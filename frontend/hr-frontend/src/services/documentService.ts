@@ -10,7 +10,11 @@ export interface Document {
   uploaded_by_name: string;
   uploaded_at: string;
   chunk_count: number;
+  embedded_chunk_count?: number;
   page_count: number;
+  extracted_characters?: number;
+  extracted_tokens?: number;
+  extraction_tokenizer?: string;
   processing_error?: string;
   processing_progress?: number;
   processing_stage?: string;
@@ -20,12 +24,20 @@ export interface Document {
   processing_attempt?: number;
   processing_started_at?: string | null;
   processing_completed_at?: string | null;
-  chunks?: {
-    chunk_index: number;
-    chunk_text: string;
-    page_number: number;
-    embedding: number[];
-  }[];
+}
+
+export interface DocumentChunkInfo {
+  chunk_index: number;
+  page_number: number;
+  page_start?: number;
+  page_end?: number;
+  section_heading?: string;
+  char_count?: number;
+  token_count?: number;
+  embedding_status?: string;
+  chunk_text_length?: number;
+  chunk_text_preview?: string;
+  document_title?: string;
 }
 
 export interface DocumentProcessingStatus {
@@ -38,7 +50,12 @@ export interface DocumentProcessingStatus {
   total_chunks: number;
   processed_chunks: number;
   chunk_count: number;
+  embedded_chunk_count?: number;
+  extracted_characters?: number;
+  extracted_tokens?: number;
+  extraction_tokenizer?: string;
   page_count: number;
+  file_size?: number;
   processing_error?: string;
   processing_attempt?: number;
   processing_started_at?: string | null;

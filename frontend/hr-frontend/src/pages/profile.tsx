@@ -10,19 +10,20 @@ export default function ProfilePage() {
   }
 
   return (
-    <div style={{ maxWidth: '500px', margin: '3rem auto', padding: '2rem', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08), text-align: center' }}>
+    <div style={{ maxWidth: '760px', width: 'calc(100% - 2rem)', margin: '3rem auto', padding: '2rem', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', textAlign: 'center' }}>
       <h2 style={{ marginBottom: '1.5rem', color: '#2c3e50' }}>Profile</h2>
-      <div style={{ marginBottom: '1rem' }}>
-        <strong>Username:</strong> {user.username}
-      </div>
-      <div style={{ marginBottom: '1rem' }}>
-        <strong>Email:</strong> {user.email}
-      </div>
-      <div style={{ marginBottom: '1rem' }}>
-        <strong>Role:</strong> {user.role}
-      </div>
-      <div style={{ marginBottom: '1rem' }}>
-        <strong>Employee ID:</strong> {user.employee_id}
+      <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem', textAlign: 'left' }}>
+        {[
+          ['Username', user.username],
+          ['Email', user.email],
+          ['Role', user.role],
+          ['Employee ID', user.employee_id],
+        ].map(([label, value]) => (
+          <div key={label} style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '1rem', alignItems: 'start' }}>
+            <strong style={{ color: '#2c3e50' }}>{label}:</strong>
+            <span style={{ color: '#374151', wordBreak: 'break-word' }}>{value}</span>
+          </div>
+        ))}
       </div>
       <button
         style={{
@@ -41,9 +42,7 @@ export default function ProfilePage() {
       >
         Change Password
       </button>
-      <p style={{ marginTop: '1.5rem', color: '#666', fontSize: '0.9rem' }}>
-        <Link to="/change-password" style={{ color: '#3498db' }}>Change Password</Link>
-      </p>
+
     </div>
   );
 }

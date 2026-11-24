@@ -103,6 +103,9 @@ class Document(models.Model):
     filename = models.CharField(max_length=255)
     file_size = models.IntegerField(help_text="File size in bytes")
     page_count = models.IntegerField(default=0, help_text="Number of pages in PDF")
+    extracted_characters = models.PositiveIntegerField(default=0, help_text="Normalized extracted text characters")
+    extracted_tokens = models.PositiveIntegerField(default=0, help_text="Estimated tokens for normalized extracted text")
+    extraction_tokenizer = models.CharField(max_length=64, blank=True, default="", help_text="Tokenizer used for extracted/chunk token estimates")
     processing_error = models.TextField(blank=True, default="")
     processing_progress = models.PositiveSmallIntegerField(default=0)
     processing_stage = models.CharField(max_length=30, choices=STAGE_CHOICES, default="uploaded")
@@ -128,12 +131,24 @@ class Document(models.Model):
 
 class DocumentChunk(models.Model):
     """Text chunks from HR policy documents with embeddings for RAG."""
+    EMBEDDING_STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("embedded", "Embedded"),
+        ("failed", "Failed"),
+    ]
+
     document = models.ForeignKey(
         Document, on_delete=models.CASCADE, related_name="chunks"
     )
     chunk_index = models.IntegerField()
     chunk_text = models.TextField()
-    page_number = models.IntegerField()
+    page_number = models.IntegerField(help_text="Legacy start page for compatibility")
+    page_start = models.PositiveIntegerField(default=1)
+    page_end = models.PositiveIntegerField(default=1)
+    char_count = models.PositiveIntegerField(default=0)
+    token_count = models.PositiveIntegerField(default=0)
+    section_heading = models.CharField(max_length=255, blank=True, default="")
+    embedding_status = models.CharField(max_length=20, choices=EMBEDDING_STATUS_CHOICES, default="embedded")
     embedding = models.JSONField(
         validators=[validate_vector_dimensions],
         help_text="Vector embedding as JSON list of 3072 floats. "
@@ -141,11 +156,14 @@ class DocumentChunk(models.Model):
                   "For Python: use cosine_similarity() from vector.similarity."
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         ordering = ["chunk_index"]
         verbose_name = "Document Chunk"
         verbose_name_plural = "Document Chunks"
-    
+
     def __str__(self):
-        return f"Chunk {self.chunk_index} of {self.document.title} (p.{self.page_number})"
+        end = self.page_end or self.page_start or self.page_number
+        start = self.page_start or self.page_number
+        page_label = f"p.{start}" if start == end else f"pp.{start}-{end}"
+        return f"Chunk {self.chunk_index} of {self.document.title} ({page_label})"

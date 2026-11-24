@@ -156,7 +156,9 @@ export default function ChatPage() {
 
   return (
     <div style={{ maxWidth: '1320px', margin: '2rem auto', padding: '0 1rem' }}>
-      <h2>AI Chatbot</h2>
+      <div style={{ background: '#fff', padding: '1rem 1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '1rem' }}>
+        <h2 style={{ margin: 0, color: '#2c3e50' }}>AI Chatbot</h2>
+      </div>
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
         <div style={{ width: '260px', flexShrink: 0 }}>
           <button

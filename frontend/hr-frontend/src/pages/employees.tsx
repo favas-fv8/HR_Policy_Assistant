@@ -30,6 +30,7 @@ export default function EmployeesPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [form, setForm] = useState<EmployeeForm>(emptyEmployeeForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [editEmployeeId, setEditEmployeeId] = useState('');
   const [editFullName, setEditFullName] = useState('');
@@ -119,6 +120,8 @@ export default function EmployeesPage() {
       const generatedUserId = created?.username || employeeId;
       setSuccess(`Employee account created. User ID: ${generatedUserId}. Share this User ID with the employee; do not share the password.`);
       setForm(emptyEmployeeForm);
+      setFieldErrors({});
+      setShowCreateForm(false);
       await loadUsers();
     } catch (e: any) {
       const data = e?.data;
@@ -261,12 +264,29 @@ export default function EmployeesPage() {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '32px', fontWeight: 600, color: '#1a1a2e', marginBottom: '0.5rem' }}>Employee Management</h1>
-      <p style={{ color: '#52525b', marginBottom: '2rem' }}>Create and manage employee accounts.</p>
+      <div style={{ background: '#fff', padding: '1.5rem 2rem', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 600, color: '#1a1a2e', marginBottom: '0.5rem', marginTop: 0 }}>Employee Management</h1>
+        <p style={{ color: '#52525b', marginBottom: 0 }}>Create and manage employee accounts.</p>
+      </div>
 
       {error && <p style={{ color: '#e74c32', marginBottom: '1rem' }}>{error}</p>}
       {success && <p style={{ color: '#27ae60', marginBottom: '1rem' }}>{success}</p>}
 
+      <div style={{ marginBottom: '1rem' }}>
+        <button
+          type="button"
+          style={buttonStyle}
+          onClick={() => {
+            setShowCreateForm((v) => !v);
+            setFieldErrors({});
+            setError(null);
+          }}
+        >
+          {showCreateForm ? 'Close' : '+ Add Employee'}
+        </button>
+      </div>
+
+      {showCreateForm && (
       <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '1.25rem', color: '#2c3e50', marginBottom: '1rem' }}>Create Employee</h2>
         <form onSubmit={handleCreate} style={{ maxWidth: '700px' }}>
@@ -301,7 +321,7 @@ export default function EmployeesPage() {
             />
             {fieldErrors.email && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{fieldErrors.email}</div>}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1.25rem', alignItems: 'start' }}>
             <div>
               <label style={labelStyle}>Password</label>
               <input
@@ -334,6 +354,7 @@ export default function EmployeesPage() {
           </button>
         </form>
       </section>
+      )}
 
       <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
         <h2 style={{ fontSize: '1.25rem', color: '#2c3e50', marginBottom: '1rem' }}>Employees</h2>

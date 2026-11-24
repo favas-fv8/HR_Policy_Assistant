@@ -216,9 +216,11 @@ export default function DocumentsPage() {
 
   return (
     <div className="documents-page" style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2>Document Library</h2>
-      {error && <p style={{ color: '#e74c32' }}>{error}</p>}
-      {success && <p style={{ color: '#27ae60' }}>{success}</p>}
+      <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
+        <h2 style={{ marginTop: 0, color: '#2c3e50' }}>Document Library</h2>
+        {error && <p style={{ color: '#e74c32' }}>{error}</p>}
+        {success && <p style={{ color: '#27ae60' }}>{success}</p>}
+      </div>
 
       {isAdmin && (
         <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
@@ -245,8 +247,8 @@ export default function DocumentsPage() {
         </section>
       )}
 
-      <section>
-        <h3 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Documents</h3>
+      <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+        <h3 style={{ color: '#2c3e50', marginBottom: '1rem', marginTop: 0 }}>Documents</h3>
         {loading ? (
           <p>Loading documents...</p>
         ) : documentsList.length === 0 ? (
@@ -256,9 +258,9 @@ export default function DocumentsPage() {
             {documentsList.map((rawDoc: Document) => {
               const doc = getDocStatus(rawDoc);
               return (
-              <li key={doc.id} className="doc-item" style={{ padding: '0.75rem 0', borderBottom: '1px solid #eee' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
+              <li key={doc.id} className="doc-item" style={{ padding: '0.75rem 0', borderBottom: '1px solid #eee', display: 'block' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', width: '100%' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ color: '#333', fontWeight: 500 }}>{doc.title}</span>
                     <span style={{ color: '#666', marginLeft: '0.75rem' }}>
                       ({(doc.page_count ?? 0)} pages)
@@ -267,11 +269,11 @@ export default function DocumentsPage() {
                       Status: {doc.status} | Progress: {doc.processing_progress ?? (doc.status === 'ready' ? 100 : 0)}% | Chunks: {doc.chunk_count ?? 0} | Attempt: {doc.processing_attempt ?? 0}
                     </div>
                   </div>
-                  <div>
+                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0, width: isAdmin ? '430px' : '160px' }}>
                     <button
                       type="button"
                       onClick={() => navigate(`/documents/${doc.id}/view`)}
-                      style={{ marginRight: '0.5rem', padding: '0.4rem 0.8rem', background: '#3498db', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                      style={{ marginRight: isAdmin ? '0.5rem' : 0, padding: '0.4rem 0.8rem', background: '#3498db', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     >
                       View Document
                     </button>
@@ -365,13 +367,13 @@ export default function DocumentsPage() {
             </div>
 
             <div style={{ marginTop: '1rem', color: '#555' }}>
-              <p style={{ margin: '0.25rem 0' }}><strong>Chunks created (DB stored):</strong> {doc.chunk_count ?? 0}</p>
-              <p style={{ margin: '0.25rem 0' }}><strong>Processed chunks (embedded):</strong> {doc.processed_chunks ?? 0}</p>
+              <p style={{ margin: '0.25rem 0' }}><strong>Original PDF file size:</strong> {doc.file_size ?? 0} bytes ({((doc.file_size ?? 0) / 1024).toFixed(1)} KB)</p>
+              <p style={{ margin: '0.25rem 0' }}><strong>Extracted text (normalized):</strong> {doc.extracted_characters ?? 0} chars / {doc.extracted_tokens ?? 0} est. tokens{doc.extraction_tokenizer ? ` (${doc.extraction_tokenizer})` : ' (tokenizer unknown/legacy)'}</p>
+              <p style={{ margin: '0.25rem 0' }}><strong>Total chunks stored (DB):</strong> {doc.chunk_count ?? 0}</p>
+              <p style={{ margin: '0.25rem 0' }}><strong>Embedded chunks:</strong> {doc.embedded_chunk_count ?? doc.processed_chunks ?? 0}</p>
               <p style={{ margin: '0.25rem 0' }}><strong>Total chunks (current attempt):</strong> {doc.total_chunks ?? 0}</p>
-              <p style={{ margin: '0.25rem 0' }}>Processing attempt: {doc.processing_attempt ?? 0}</p>
-              <p style={{ margin: '0.25rem 0' }}>Filename: {doc.filename}</p>
-              <p style={{ margin: '0.25rem 0' }}>File size: {doc.file_size}</p>
-              <p style={{ margin: '0.25rem 0' }}>Pages: {doc.page_count ?? 0}</p>
+              <p style={{ margin: '0.25rem 0' }}>Pages: {doc.page_count ?? 0} | Attempt: {doc.processing_attempt ?? 0}</p>
+              <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#6b7280' }}>Note: file bytes, extracted characters, token estimates, and chunk count are different metrics.</p>
             </div>
 
             {isAdmin && doc.status === 'error' && doc.processing_error ? (
@@ -387,9 +389,15 @@ export default function DocumentsPage() {
               <div style={{ marginTop: '1rem' }}>
                 <h4 style={{ color: '#2c3e50' }}>Chunks</h4>
                 {viewingChunks.map((c: any) => (
-                  <div key={c.chunk_index} style={{ marginBottom: '0.5rem', padding: '0.5rem', border: '1px solid #eee', borderRadius: '6px' }}>
-                    <div>Chunk #{c.chunk_index} | Page {c.page_number} | Length {c.chunk_text_length}</div>
-                    <div style={{ color: '#666', fontSize: '0.9rem' }}>{c.chunk_text}</div>
+                  <div key={c.chunk_index} style={{ marginBottom: '0.5rem', padding: '0.6rem', border: '1px solid #eee', borderRadius: '6px' }}>
+                    <div style={{ fontSize: '0.9rem', color: '#374151' }}>
+                      <strong>Chunk #{c.chunk_index}</strong> | Pages {c.page_start ?? c.page_number}-{c.page_end ?? c.page_number}
+                      {c.section_heading ? ` | ${c.section_heading}` : ''}
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: 2 }}>
+                      {c.char_count ?? c.chunk_text_length ?? 0} chars | {c.token_count ?? 0} est. tokens | embedding: {c.embedding_status || 'unknown'}
+                    </div>
+                    <div style={{ color: '#555', fontSize: '0.9rem', marginTop: 4, whiteSpace: 'pre-wrap' }}>{c.chunk_text_preview || c.chunk_text || ''}</div>
                   </div>
                 ))}
               </div>

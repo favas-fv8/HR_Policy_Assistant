@@ -135,3 +135,111 @@ class DocumentFileAccessAPITest(APITestCase):
         self.client.force_authenticate(user=self.emp)
         r = self.client.get("/api/v1/documents/999999/file/")
         self.assertEqual(r.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class DocumentReprocessSafetyTest(TestCase):
+    """Controlled failure test: old chunks remain until replacement commits."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="reproc_user", email="reproc@test.com", password="Pass123!", employee_id="EMPREP1"
+        )
+        self.doc = Document.objects.create(
+            title="Reprocess Doc",
+            filename="reprocess.pdf",
+            uploaded_by=self.user,
+            file=SimpleUploadedFile(name="reprocess.pdf", content=b"%PDF-1.4 test", content_type="application/pdf"),
+            file_size=14,
+            status="ready",
+            page_count=1,
+            extracted_characters=100,
+            extracted_tokens=20,
+            extraction_tokenizer="approx-word",
+            total_chunks=1,
+            processed_chunks=1,
+            processing_progress=100,
+            processing_stage="ready",
+        )
+        self.chunk = DocumentChunk.objects.create(
+            document=self.doc,
+            chunk_index=0,
+            chunk_text="Original valid chunk",
+            page_number=1,
+            page_start=1,
+            page_end=1,
+            char_count=20,
+            token_count=4,
+            section_heading="Original",
+            embedding_status="embedded",
+            embedding=[0.01] * 3072,
+        )
+
+    def _snapshot(self):
+        self.doc.refresh_from_db()
+        chunks = list(DocumentChunk.objects.filter(document=self.doc).order_by("chunk_index").values(
+            "id", "chunk_index", "chunk_text", "page_start", "page_end", "char_count", "token_count", "section_heading", "embedding_status", "embedding"
+        ))
+        return {
+            "doc": {
+                "status": self.doc.status,
+                "processing_error": self.doc.processing_error,
+                "extracted_characters": self.doc.extracted_characters,
+                "extracted_tokens": self.doc.extracted_tokens,
+                "extraction_tokenizer": self.doc.extraction_tokenizer,
+                "total_chunks": self.doc.total_chunks,
+                "processed_chunks": self.doc.processed_chunks,
+            },
+            "chunks": chunks,
+        }
+
+    def test_failed_reprocess_preserves_old_chunks_and_successful_retry_replaces(self):
+        from unittest import mock
+        from rag.pipeline import RAGPipeline
+
+        before = self._snapshot()
+
+        pipeline = RAGPipeline.__new__(RAGPipeline)
+        pipeline.embedding_generator = mock.Mock()
+        pipeline.embedding_generator.close = mock.Mock()
+        pipeline.embedding_generator.generate_embedding.side_effect = [[0.02] * 3072, RuntimeError("forced embedding failure")]
+        pipeline._embedding_progress = lambda i, total: RAGPipeline._embedding_progress(total, i)
+        pipeline._update_progress = lambda doc_id, **kwargs: Document.objects.filter(pk=doc_id).update(**kwargs)
+        pipeline.extract_pages = mock.Mock(return_value=(["Page 1 text", "Page 2 text"], 2))
+        pipeline.build_document_chunks = mock.Mock(return_value=([
+            {"index": 0, "text": "New chunk 1", "page_number": 1, "page_start": 1, "page_end": 1, "char_count": 11, "token_count": 3, "section_heading": "New"},
+            {"index": 1, "text": "New chunk 2", "page_number": 2, "page_start": 2, "page_end": 2, "char_count": 11, "token_count": 3, "section_heading": "New"},
+        ], {"total_extracted_characters": 22, "total_extracted_tokens": 6, "tokenizer": "approx-word"}))
+        pipeline.close = mock.Mock()
+
+        with self.assertRaises(RuntimeError):
+            pipeline.process_document(self.doc.id)
+
+        after_fail = self._snapshot()
+        self.assertEqual(before["chunks"], after_fail["chunks"])
+        self.doc.refresh_from_db()
+        self.assertEqual(self.doc.status, "processing")
+        # Pipeline raises before commit; task layer marks error in production. Simulate task error update.
+        Document.objects.filter(pk=self.doc.id).update(
+            status="error",
+            processing_error="forced embedding failure",
+            processing_stage="error",
+            processing_stage_detail="Processing failed.",
+            processing_progress=40,
+        )
+        self.doc.refresh_from_db()
+        self.assertEqual(self.doc.status, "error")
+        self.assertIn("forced embedding failure", self.doc.processing_error)
+        self.assertEqual(self.doc.processing_stage, "error")
+
+        # Successful retry should atomically replace old chunks.
+        pipeline.embedding_generator.generate_embedding.side_effect = [[0.03] * 3072, [0.04] * 3072]
+        result = pipeline.process_document(self.doc.id)
+        self.assertEqual(result["status"], "ready")
+        self.doc.refresh_from_db()
+        chunks = list(DocumentChunk.objects.filter(document=self.doc).order_by("chunk_index"))
+        self.assertEqual(self.doc.status, "ready")
+        self.assertEqual(self.doc.chunk_count if False else len(chunks), 2)
+        self.assertEqual([c.chunk_text for c in chunks], ["New chunk 1", "New chunk 2"])
+        self.assertTrue(all(len(c.embedding) == 3072 for c in chunks))
+        old_ids = {c["id"] for c in before["chunks"]}
+        self.assertTrue(all(c.id not in old_ids for c in chunks))

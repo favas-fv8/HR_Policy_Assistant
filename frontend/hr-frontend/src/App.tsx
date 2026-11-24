@@ -12,6 +12,7 @@ import HRAdminDashboard from './pages/hr-admin-dashboard';
 import EmployeeDashboard from './pages/employee-dashboard';
 import ChangePasswordPage from './pages/change-password';
 import EmployeesPage from './pages/employees';
+import AppFooter from './components/layout/AppFooter';
 
 function RequireAuth({ children, role }: { children: ReactNode; role?: 'hr_admin' | 'employee' }) {
   const { user } = useAuth();
@@ -97,7 +98,15 @@ export default function App() {
           ))}
           <li>
             {isLoggedIn ? (
-              <button type="button" className="menu-bar-action" onClick={logout}>
+              <button
+                type="button"
+                className="menu-bar-action"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to logout?')) {
+                    logout();
+                  }
+                }}
+              >
                 Logout
               </button>
             ) : (
@@ -107,82 +116,86 @@ export default function App() {
         </ul>
       </nav>
 
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route
-          path="/login"
-          element={
-            <GuestOnly>
-              <LoginPage />
-            </GuestOnly>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <RequireAuth>
-              <ChatPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/documents"
-          element={
-            <RequireAuth>
-              <DocumentsPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/documents/:id/view"
-          element={
-            <RequireAuth>
-              <DocumentViewerPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/employees"
-          element={
-            <RequireAuth role="hr_admin">
-              <EmployeesPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <RequireAuth>
-              <ProfilePage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/change-password"
-          element={
-            <RequireAuth>
-              <ChangePasswordPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/hr-admin-dashboard"
-          element={
-            <RequireAuth role="hr_admin">
-              <HRAdminDashboard />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/employee-dashboard"
-          element={
-            <RequireAuth>
-              <EmployeeDashboard />
-            </RequireAuth>
-          }
-        />
-      </Routes>
+      <main className="app-main">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route
+            path="/login"
+            element={
+              <GuestOnly>
+                <LoginPage />
+              </GuestOnly>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <RequireAuth>
+                <ChatPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/documents"
+            element={
+              <RequireAuth>
+                <DocumentsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/documents/:id/view"
+            element={
+              <RequireAuth>
+                <DocumentViewerPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/employees"
+            element={
+              <RequireAuth role="hr_admin">
+                <EmployeesPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <RequireAuth>
+                <ProfilePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/change-password"
+            element={
+              <RequireAuth>
+                <ChangePasswordPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/hr-admin-dashboard"
+            element={
+              <RequireAuth role="hr_admin">
+                <HRAdminDashboard />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/employee-dashboard"
+            element={
+              <RequireAuth>
+                <EmployeeDashboard />
+              </RequireAuth>
+            }
+          />
+        </Routes>
+      </main>
+
+      <AppFooter />
     </div>
   );
 }

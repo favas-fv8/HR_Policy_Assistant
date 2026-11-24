@@ -70,11 +70,11 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div style={{ maxWidth: '420px', margin: '5rem auto', padding: '2rem', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+    <div style={{ maxWidth: '760px', width: 'calc(100% - 2rem)', margin: '5rem auto', padding: '2rem', background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', textAlign: 'center' }}>
       <h2 style={{ marginBottom: '1.5rem', color: '#2c3e50' }}>Change Password</h2>
       {error && <p style={{ color: '#e74c32', marginBottom: '1.5rem' }}>{error}</p>}
       {success && <p style={{ color: '#27ae60', marginBottom: '1.5rem' }}>{success}</p>}
-      <form onSubmit={handleChangePassword} style={{ maxWidth: '300px', margin: '0 auto' }}>
+      <form onSubmit={handleChangePassword} style={{ maxWidth: '460px', margin: '0 auto' }}>
         <input type="password" placeholder="Current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required style={{ padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem', marginBottom: '0.5rem', width: '100%' }} />
         <input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required style={{ padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem', marginBottom: '0.5rem', width: '100%' }} />
         <input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem', marginBottom: '1rem', width: '100%' }} />

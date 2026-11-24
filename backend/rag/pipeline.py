@@ -9,6 +9,7 @@ from django.conf import settings
 
 from embeddings.generator import EmbeddingGenerator
 from vector.similarity import retrieve_top_chunks
+from rag.chunking import PageText, chunk_pages, get_chunking_config, normalize_text
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +27,14 @@ class RAGPipeline:
             os.getenv("RAG_SIMILARITY_THRESHOLD", "0.7")
         )
         self.retrieval_limit = int(os.getenv("RAG_RETRIEVAL_LIMIT", "5"))
-        self.chunk_size = int(os.getenv("RAG_CHUNK_SIZE", "1000"))
-        self.chunk_overlap = int(os.getenv("RAG_CHUNK_OVERLAP", "200"))
+        cfg = get_chunking_config()
+        self.chunk_target_tokens = cfg["target_tokens"]
+        self.chunk_max_tokens = cfg["max_tokens"]
+        self.chunk_overlap_tokens = cfg["overlap_tokens"]
+        self.chunk_min_tokens = cfg["min_tokens"]
+        # Legacy fields retained for API/status compatibility
+        self.chunk_size = self.chunk_target_tokens
+        self.chunk_overlap = self.chunk_overlap_tokens
         self.gen_model = os.getenv("GEMINI_GENERATION_MODEL", "gemini-3-flash-preview")
         self.gen_fallback_models = [
             m.strip()
@@ -64,15 +71,7 @@ class RAGPipeline:
             return False
     
     def extract_pages(self, pdf_file_path: str) -> Tuple[List[str], int]:
-        """
-        Extract text per page from PDF using PyMuPDF.
-
-        Args:
-            pdf_file_path: Path to the PDF file
-
-        Returns:
-            Tuple of (list of page texts indexed from 0, page count)
-        """
+        """Extract text per page from PDF using PyMuPDF."""
         try:
             doc = fitz.open(pdf_file_path)
             pages = [doc[page_num].get_text("text") for page_num in range(len(doc))]
@@ -83,62 +82,54 @@ class RAGPipeline:
             raise RuntimeError(f"Failed to extract text from PDF: {e}")
 
     def extract_text_from_pdf(self, pdf_file_path: str) -> Tuple[str, int]:
-        """
-        Extract full text from PDF document using PyMuPDF.
-
-        Args:
-            pdf_file_path: Path to the PDF file
-
-        Returns:
-            Tuple of (extracted_text, page_count)
-        """
         pages, page_count = self.extract_pages(pdf_file_path)
         return "\n".join(pages), page_count
 
     def chunk_text(self, text: str, page_number: int = 1) -> List[Dict]:
-        """
-        Split extracted text into meaningful chunks with overlap.
+        """Legacy single-page chunking wrapper. Uses new token/structure-aware chunker."""
+        chunks, _ = chunk_pages(
+            [PageText(page_number=page_number, text=text or "")],
+            target_tokens=self.chunk_target_tokens,
+            max_tokens=self.chunk_max_tokens,
+            overlap_tokens=self.chunk_overlap_tokens,
+            min_tokens=self.chunk_min_tokens,
+        )
+        return [
+            {
+                "index": c.chunk_index,
+                "text": c.chunk_text,
+                "page_number": c.page_number,
+                "page_start": c.page_start,
+                "page_end": c.page_end,
+                "char_count": c.character_count,
+                "token_count": c.token_count,
+                "section_heading": c.section_heading,
+            }
+            for c in chunks
+        ]
 
-        Args:
-            text: Full text (typically a single page) to chunk
-            page_number: Page the chunks belong to (1-based)
-
-        Returns:
-            List of chunk dicts with index, text, and page info
-        """
-        if not text or not text.strip():
-            return []
-
-        chunks = []
-        words = text.split()
-
-        if not words:
-            return []
-
-        start = 0
-        chunk_index = 0
-
-        while start < len(words):
-            end = min(start + self.chunk_size, len(words))
-            chunk_words = words[start:end]
-            chunk_text = " ".join(chunk_words)
-
-            chunks.append({
-                "index": chunk_index,
-                "text": chunk_text,
-                "page_number": page_number,
+    def build_document_chunks(self, pages: List[str]) -> Tuple[List[Dict], Dict]:
+        page_objs = [PageText(page_number=i + 1, text=p or "") for i, p in enumerate(pages)]
+        chunk_specs, stats = chunk_pages(
+            page_objs,
+            target_tokens=self.chunk_target_tokens,
+            max_tokens=self.chunk_max_tokens,
+            overlap_tokens=self.chunk_overlap_tokens,
+            min_tokens=self.chunk_min_tokens,
+        )
+        out = []
+        for c in chunk_specs:
+            out.append({
+                "index": c.chunk_index,
+                "text": c.chunk_text,
+                "page_number": c.page_number,
+                "page_start": c.page_start,
+                "page_end": c.page_end,
+                "char_count": c.character_count,
+                "token_count": c.token_count,
+                "section_heading": c.section_heading,
             })
-
-            chunk_index += 1
-
-            # Move start position with overlap
-            start = end - self.chunk_overlap
-            if start <= 0:
-                start = end
-            if end >= len(words):
-                break
-
-        return chunks
+        return out, stats
     
     @staticmethod
     def _embedding_progress(processed_chunks: int, total_chunks: int) -> int:
@@ -186,26 +177,18 @@ class RAGPipeline:
             )
 
             pages, page_count = self.extract_pages(document.file.path)
+            normalized_pages = [normalize_text(p) for p in pages]
+            chunk_specs, stats = self.build_document_chunks(normalized_pages)
             self._update_progress(
                 document_id,
                 page_count=page_count,
+                extracted_characters=int(stats.get("total_extracted_characters", 0)),
+                extracted_tokens=int(stats.get("total_extracted_tokens", 0)),
+                extraction_tokenizer=str(stats.get("tokenizer", "") or "")[:64],
                 processing_progress=25,
                 processing_stage="extracting",
                 processing_stage_detail=f"Extracted text from {page_count} page(s).",
             )
-
-            chunk_specs = []
-            chunk_index = 0
-            for page_number, page_text in enumerate(pages, start=1):
-                for chunk_data in self.chunk_text(page_text, page_number=page_number):
-                    chunk_specs.append(
-                        {
-                            "index": chunk_index,
-                            "text": chunk_data["text"],
-                            "page_number": chunk_data["page_number"],
-                        }
-                    )
-                    chunk_index += 1
 
             total_chunks = len(chunk_specs)
             self._update_progress(
@@ -214,7 +197,7 @@ class RAGPipeline:
                 processed_chunks=0,
                 processing_progress=40 if total_chunks > 0 else 40,
                 processing_stage="chunking",
-                processing_stage_detail=f"Created {total_chunks} chunk(s).",
+                processing_stage_detail=f"Created {total_chunks} chunk(s) ({stats.get('tokenizer','tokenizer')}).",
             )
 
             if not chunk_specs:
@@ -232,7 +215,13 @@ class RAGPipeline:
                         document=document,
                         chunk_index=chunk_spec["index"],
                         chunk_text=chunk_spec["text"],
-                        page_number=chunk_spec["page_number"],
+                        page_number=chunk_spec.get("page_number") or chunk_spec.get("page_start") or 1,
+                        page_start=chunk_spec.get("page_start") or chunk_spec.get("page_number") or 1,
+                        page_end=chunk_spec.get("page_end") or chunk_spec.get("page_number") or 1,
+                        char_count=int(chunk_spec.get("char_count") or len(chunk_spec["text"])),
+                        token_count=int(chunk_spec.get("token_count") or 0),
+                        section_heading=(chunk_spec.get("section_heading") or "")[:255],
+                        embedding_status="embedded",
                         embedding=embedding,
                     )
                 )
@@ -264,6 +253,9 @@ class RAGPipeline:
                     status="ready",
                     processing_error="",
                     page_count=page_count,
+                    extracted_characters=int(stats.get("total_extracted_characters", 0)),
+                    extracted_tokens=int(stats.get("total_extracted_tokens", 0)),
+                    extraction_tokenizer=str(stats.get("tokenizer", "") or "")[:64],
                     processing_progress=100,
                     processing_stage="ready",
                     processing_stage_detail="Document ready for RAG.",
@@ -274,6 +266,7 @@ class RAGPipeline:
 
             document.refresh_from_db(fields=[
                 "status", "processing_error", "page_count",
+                "extracted_characters", "extracted_tokens", "extraction_tokenizer",
                 "processing_progress", "processing_stage", "processing_stage_detail",
                 "total_chunks", "processed_chunks",
             ])
@@ -281,6 +274,9 @@ class RAGPipeline:
                 "document_id": document.id,
                 "chunks_created": len(chunk_objects),
                 "pages_processed": page_count,
+                "extracted_characters": document.extracted_characters,
+                "extracted_tokens": document.extracted_tokens,
+                "tokenizer": stats.get("tokenizer"),
                 "status": document.status,
             }
         finally:
@@ -306,6 +302,9 @@ class RAGPipeline:
                         "document_title": chunk.document.title,
                         "chunk_index": chunk.chunk_index,
                         "page_number": chunk.page_number,
+                        "page_start": getattr(chunk, "page_start", None) or chunk.page_number,
+                        "page_end": getattr(chunk, "page_end", None) or chunk.page_number,
+                        "section_heading": getattr(chunk, "section_heading", "") or "",
                         "chunk_text": chunk.chunk_text,
                     }
                 )
@@ -332,15 +331,22 @@ class RAGPipeline:
                 chunk_text = result.get("chunk_text", "")
                 doc_title = result.get("document_title", "Unknown")
                 page_num = result.get("page_number", "Unknown")
+                page_start = result.get("page_start") or page_num
+                page_end = result.get("page_end") or page_num
+                section_heading = result.get("section_heading") or ""
                 doc_id = result.get("document_id")
+                heading_part = f" | section={section_heading}" if section_heading else ""
                 context_parts.append(
-                    f"[S{i} | document_id={doc_id} | title={doc_title} | page={page_num}]\n{chunk_text}"
+                    f"[S{i} | document_id={doc_id} | title={doc_title} | pages={page_start}-{page_end}{heading_part}]\n{chunk_text}"
                 )
                 sources.append(
                     {
                         "document_id": doc_id,
                         "document_title": doc_title,
-                        "page_number": page_num,
+                        "page_number": page_start if page_start == page_end else page_start,
+                        "page_start": page_start,
+                        "page_end": page_end,
+                        "section_heading": section_heading,
                         "excerpt": chunk_text[:240] + "..." if len(chunk_text) > 240 else chunk_text,
                     }
                 )

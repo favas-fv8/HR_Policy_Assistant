@@ -60,17 +60,17 @@ export default function EmployeeDashboard() {
         </div>
       ) : (
         <>
-          <section style={{ marginBottom: '2rem' }}>
-            <h1 style={{ fontSize: '32px', fontWeight: 600, color: '#1a1a2e', marginBottom: '0.5rem' }}>
+          <section style={{ marginBottom: '2rem', background: '#fff', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+            <h1 style={{ fontSize: '32px', fontWeight: 600, color: '#1a1a2e', marginBottom: '0.5rem', marginTop: 0 }}>
               Employee Dashboard
             </h1>
-            <p style={{ color: '#52525b', marginBottom: '1.5rem' }}>
+            <p style={{ color: '#52525b', marginBottom: 0 }}>
               Your personalized HR policy access.
             </p>
           </section>
 
-          <section>
-            <h2 style={{ fontSize: '1.25rem', color: '#2c3e50', marginBottom: '1rem' }}>
+          <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+            <h2 style={{ fontSize: '1.25rem', color: '#2c3e50', marginBottom: '1rem', marginTop: 0 }}>
               Available Policies
             </h2>
 
@@ -83,7 +83,7 @@ export default function EmployeeDashboard() {
             ) : (
               <ul style={{ listStyle: 'none', padding: '0', margin: '0' }}>
                 {documents.map((doc: any) => (
-                  <li key={doc.id} style={{ display: 'flex', justifyContent: 'between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #eee' }}>
+                  <li key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #eee' }}>
                     <span style={{ color: '#333' }}>{doc.title}</span>
                     <span style={{ color: '#666', marginLeft: '1rem' }}>({doc.page_count} pages)</span>
                   </li>
@@ -92,7 +92,7 @@ export default function EmployeeDashboard() {
             )}
           </section>
 
-          <section style={{ marginTop: '1.5rem' }}>
+          <section style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
             <button
               onClick={() => navigate('/chat')}
               style={{
@@ -111,12 +111,13 @@ export default function EmployeeDashboard() {
               onClick={loadDocuments}
               style={{
                 padding: '0.5rem 1rem',
-                background: 'transparent',
-                border: '1px solid #ddd',
-                color: '#555',
+                background: '#6b7280',
+                border: '1px solid #6b7280',
+                color: '#fff',
                 borderRadius: '6px',
                 fontSize: '0.9rem',
                 cursor: 'pointer',
+                marginLeft: 'auto',
               }}
             >
               Refresh
