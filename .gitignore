@@ -1,0 +1,31 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+*.sqlite3
+db.sqlite3
+db_backup.json
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Project artifacts
+/Dweb projectsHR_Policy_Assistantfrontendhr-frontend/
+true
+
+# Temp debug scripts
+backend/tmp_dbg*.py
+backend/tmp_login*.py
