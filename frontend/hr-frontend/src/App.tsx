@@ -84,59 +84,28 @@ export default function App() {
   }
 
   return (
-    <div>
-      <nav
-        style={{
-          background: '#2c3e50',
-          padding: '1rem 2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          color: '#fff',
-        }}
-      >
-        <Link to="/" style={{ fontSize: '1.5rem', fontWeight: 600, color: '#fff' }}>
+    <div className="app-shell">
+      <nav className="app-nav">
+        <Link to="/" className="app-brand">
           HR Policy Assistant
         </Link>
-        {links.map((link) => (
-          <Link
-            key={link.path}
-            to={link.path}
-            style={{
-              marginLeft: '1rem',
-              color: '#fff',
-              textDecoration: 'none',
-              fontWeight: 500,
-            }}
-          >
-            {link.label}
-          </Link>
-        ))}
-        {isLoggedIn ? (
-          <button
-            style={{
-              background: 'transparent',
-              border: '1px solid #fff',
-              color: '#fff',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-            onClick={logout}
-          >
-            Logout
-          </button>
-        ) : (
-          <Link
-            to="/login"
-            style={{ marginLeft: '1rem', color: '#fff', textDecoration: 'none', fontWeight: 500 }}
-          >
-            Login
-          </Link>
-        )}
+        <ul className="menu-bar">
+          {links.map((link) => (
+            <li key={link.path}>
+              <Link to={link.path}>{link.label}</Link>
+            </li>
+          ))}
+          <li>
+            {isLoggedIn ? (
+              <button type="button" className="menu-bar-action" onClick={logout}>
+                Logout
+              </button>
+            ) : (
+              <Link to="/login">Login</Link>
+            )}
+          </li>
+        </ul>
       </nav>
-
-      <hr style={{ borderColor: 'rgba(255,255,255,0.3)', margin: '1rem 0' }} />
 
       <Routes>
         <Route path="/" element={<HomePage />} />

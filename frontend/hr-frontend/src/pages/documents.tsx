@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Document,
   DocumentProcessingStatus,
@@ -13,6 +14,7 @@ import { useAuth } from '../state/authContext';
 
 export default function DocumentsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [documentsList, setDocumentsList] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -266,11 +268,18 @@ export default function DocumentsPage() {
                     </div>
                   </div>
                   <div>
-                    <button type="button" onClick={() => handleViewDetails(doc)} style={{ marginRight: '0.5rem', padding: '0.4rem 0.8rem', background: '#3498db', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-                      View Details
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/documents/${doc.id}/view`)}
+                      style={{ marginRight: '0.5rem', padding: '0.4rem 0.8rem', background: '#3498db', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                    >
+                      View Document
                     </button>
                     {isAdmin && (
                       <>
+                        <button type="button" onClick={() => handleViewDetails(doc)} style={{ marginRight: '0.5rem', padding: '0.4rem 0.8rem', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                          View Details
+                        </button>
                         <button type="button" onClick={() => handleReprocess(doc)} style={{ marginRight: '0.5rem', padding: '0.4rem 0.8rem', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
                           Retry
                         </button>
