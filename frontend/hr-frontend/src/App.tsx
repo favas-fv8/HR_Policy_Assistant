@@ -1,6 +1,6 @@
 ﻿import type { ReactNode } from 'react';
 import { useAuth } from './state/authContext';
-import { Routes, Route, Link, Navigate } from 'react-router-dom';
+import { Routes, Route, Link, NavLink, Navigate } from 'react-router-dom';
 import LoginPage from './pages/auth/login';
 import ChatPage from './pages/chat';
 import DocumentsPage from './pages/documents';
@@ -13,6 +13,7 @@ import EmployeeDashboard from './pages/employee-dashboard';
 import ChangePasswordPage from './pages/change-password';
 import EmployeesPage from './pages/employees';
 import AppFooter from './components/layout/AppFooter';
+import NeuralBackground from './components/layout/NeuralBackground';
 
 function RequireAuth({ children, role }: { children: ReactNode; role?: 'hr_admin' | 'employee' }) {
   const { user } = useAuth();
@@ -85,35 +86,36 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell neural-theme">
+      <NeuralBackground />
       <nav className="app-nav">
         <Link to="/" className="app-brand">
           <img src="/images/icon-image.png" alt="" className="app-brand__icon" />
           <span>HR Policy Assistant</span>
         </Link>
         <ul className="menu-bar">
-          {links.map((link) => (
-            <li key={link.path}>
-              <Link to={link.path}>{link.label}</Link>
+            {links.map((link) => (
+              <li key={link.path}>
+                <NavLink to={link.path} end={link.path === '/'} className="menu-bar__link">{link.label}</NavLink>
+              </li>
+            ))}
+            <li>
+              {isLoggedIn ? (
+                <button
+                  type="button"
+                  className="menu-bar__link"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to logout?')) {
+                      logout();
+                    }
+                  }}
+                >
+                  Logout
+                </button>
+              ) : (
+                <NavLink to="/login" className="menu-bar__link">Login</NavLink>
+              )}
             </li>
-          ))}
-          <li>
-            {isLoggedIn ? (
-              <button
-                type="button"
-                className="menu-bar-action"
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to logout?')) {
-                    logout();
-                  }
-                }}
-              >
-                Logout
-              </button>
-            ) : (
-              <Link to="/login">Login</Link>
-            )}
-          </li>
         </ul>
       </nav>
 
