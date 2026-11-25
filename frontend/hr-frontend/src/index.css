@@ -798,7 +798,10 @@ div.messages.cb-05__stage > .cb-05__thread {
   background: rgba(242,239,250,0.72);
   border: 1px solid rgba(255,255,255,0.75);
   box-shadow: 0 8px 24px rgba(163,161,242,0.08);
-  gap: 8px;
+  gap: 12px;
+  padding: 8px 24px;
+  width: min(100%, 1180px);
+  justify-content: space-between;
 }
 .neural-theme .menu-bar a,
 .neural-theme .menu-bar .menu-bar__link,
@@ -839,6 +842,10 @@ div.messages.cb-05__stage > .cb-05__thread {
   color: var(--n-text);
   background: rgba(255, 255, 255, 0.75);
   box-shadow: inset 0 0 0 1px rgba(163, 161, 242, 0.18);
+}
+.neural-theme .menu-bar .menu-bar__logout:hover,
+.neural-theme .menu-bar .menu-bar__logout:focus-visible {
+  color: #dc2626;
 }
 .neural-theme .menu-bar li + li::before { background: rgba(163,161,242,0.35); }
 

@@ -103,7 +103,7 @@ export default function App() {
               {isLoggedIn ? (
                 <button
                   type="button"
-                  className="menu-bar__link"
+                  className="menu-bar__link menu-bar__logout"
                   onClick={() => {
                     if (window.confirm('Are you sure you want to logout?')) {
                       logout();
