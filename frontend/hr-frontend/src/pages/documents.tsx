@@ -387,19 +387,21 @@ export default function DocumentsPage() {
 
             {viewingChunks && viewingChunks.length > 0 && (
               <div style={{ marginTop: '1rem' }}>
-                <h4 style={{ color: '#2c3e50' }}>Chunks</h4>
-                {viewingChunks.map((c: any) => (
-                  <div key={c.chunk_index} style={{ marginBottom: '0.5rem', padding: '0.6rem', border: '1px solid #eee', borderRadius: '6px' }}>
-                    <div style={{ fontSize: '0.9rem', color: '#374151' }}>
-                      <strong>Chunk #{c.chunk_index}</strong> | Pages {c.page_start ?? c.page_number}-{c.page_end ?? c.page_number}
-                      {c.section_heading ? ` | ${c.section_heading}` : ''}
+                <h4 style={{ color: '#2c3e50', marginBottom: '0.5rem' }}>Chunks ({viewingChunks.length})</h4>
+                <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '0.25rem', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.5rem', background: '#fafafa' }}>
+                  {viewingChunks.map((c: any) => (
+                    <div key={c.chunk_index} style={{ marginBottom: '0.5rem', padding: '0.6rem', border: '1px solid #eee', borderRadius: '6px', background: '#fff' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#374151' }}>
+                        <strong>Chunk #{c.chunk_index}</strong> | Pages {c.page_start ?? c.page_number}-{c.page_end ?? c.page_number}
+                        {c.section_heading ? ` | ${c.section_heading}` : ''}
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: 2 }}>
+                        {c.char_count ?? c.chunk_text_length ?? 0} chars | {c.token_count ?? 0} est. tokens | embedding: {c.embedding_status || 'unknown'}
+                      </div>
+                      <div style={{ color: '#555', fontSize: '0.9rem', marginTop: 4, whiteSpace: 'pre-wrap' }}>{c.chunk_text_preview || c.chunk_text || ''}</div>
                     </div>
-                    <div style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: 2 }}>
-                      {c.char_count ?? c.chunk_text_length ?? 0} chars | {c.token_count ?? 0} est. tokens | embedding: {c.embedding_status || 'unknown'}
-                    </div>
-                    <div style={{ color: '#555', fontSize: '0.9rem', marginTop: 4, whiteSpace: 'pre-wrap' }}>{c.chunk_text_preview || c.chunk_text || ''}</div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </section>

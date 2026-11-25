@@ -36,10 +36,11 @@ export default function DocumentViewerPage() {
     return () => { if (revoked) URL.revokeObjectURL(revoked); };
   }, [id]);
 
-  const viewerSrc = blobUrl ? `${blobUrl}${Number.isInteger(page) && page > 0 ? `#page=${page}` : ''}` : null;
+  const pageParam = Number.isInteger(page) && page > 0 ? `page=${page}&` : '';
+  const viewerSrc = blobUrl ? `${blobUrl}#${pageParam}view=FitH` : null;
 
   return (
-    <div style={{ padding: '1rem', maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ padding: '1rem', width: '100%', maxWidth: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', gap: '1rem' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{title}</h2>

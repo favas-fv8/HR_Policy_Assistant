@@ -165,6 +165,8 @@ export default function ChatPage() {
             style={{
               marginBottom: '1rem',
               padding: '0.5rem 1rem',
+              width: '100%',
+              boxSizing: 'border-box',
               background: '#3498db',
               color: '#fff',
               border: 'none',
