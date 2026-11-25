@@ -798,10 +798,8 @@ div.messages.cb-05__stage > .cb-05__thread {
   background: rgba(242,239,250,0.72);
   border: 1px solid rgba(255,255,255,0.75);
   box-shadow: 0 8px 24px rgba(163,161,242,0.08);
-  gap: 12px;
-  padding: 8px 24px;
-  width: min(100%, 1180px);
-  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 20px;
 }
 .neural-theme .menu-bar a,
 .neural-theme .menu-bar .menu-bar__link,
@@ -815,7 +813,7 @@ div.messages.cb-05__stage > .cb-05__thread {
   padding: 8px 10px;
   border-radius: 999px;
   border: 0;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(226, 217, 247, 0.85);
   box-shadow: inset 0 0 0 1px rgba(163, 161, 242, 0.18);
   display: inline-flex;
   align-items: center;
@@ -834,18 +832,20 @@ div.messages.cb-05__stage > .cb-05__thread {
 .neural-theme .menu-bar .menu-bar__link:focus-visible,
 .neural-theme .menu-bar button.menu-bar__link:focus-visible {
   color: var(--n-blue);
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(226, 217, 247, 0.85);
   box-shadow: inset 0 0 0 1px rgba(163, 161, 242, 0.18);
   outline: none;
 }
 .neural-theme .menu-bar .menu-bar__link.is-active {
   color: var(--n-text);
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(226, 217, 247, 0.85);
   box-shadow: inset 0 0 0 1px rgba(163, 161, 242, 0.18);
 }
-.neural-theme .menu-bar .menu-bar__logout:hover,
-.neural-theme .menu-bar .menu-bar__logout:focus-visible {
+.neural-theme .menu-bar .menu-bar__link--logout:hover,
+.neural-theme .menu-bar .menu-bar__link--logout:focus-visible {
   color: #dc2626;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.25);
 }
 .neural-theme .menu-bar li + li::before { background: rgba(163,161,242,0.35); }
 
