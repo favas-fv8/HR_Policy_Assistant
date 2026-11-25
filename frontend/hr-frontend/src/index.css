@@ -843,9 +843,9 @@ div.messages.cb-05__stage > .cb-05__thread {
 }
 .neural-theme .menu-bar .menu-bar__link--logout:hover,
 .neural-theme .menu-bar .menu-bar__link--logout:focus-visible {
-  color: #dc2626;
-  background: rgba(255, 255, 255, 0.75);
-  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.25);
+  color: #fff;
+  background: #dc2626;
+  box-shadow: inset 0 0 0 1px #dc2626;
 }
 .neural-theme .menu-bar li + li::before { background: rgba(163,161,242,0.35); }
 
