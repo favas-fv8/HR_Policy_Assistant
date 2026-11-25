@@ -29,7 +29,7 @@ export const createConversation = async (title?: string) => {
       ...AUTH_HEADERS(localStorage.getItem('hr_token')),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ title: title || 'New Conversation' }),
+    body: JSON.stringify({ title: title || 'New Chat' }),
   });
   return data;
 };
@@ -39,4 +39,11 @@ export const fetchMessages = async (conversationId: number) => {
     headers: { ...AUTH_HEADERS(localStorage.getItem('hr_token')) },
   });
   return Array.isArray(data) ? data : [];
+};
+
+export const deleteConversation = async (conversationId: number) => {
+  await apiFetch(`${API_BASE}/v1/chat/conversations/${conversationId}/delete/`, {
+    method: 'DELETE',
+    headers: { ...AUTH_HEADERS(localStorage.getItem('hr_token')) },
+  });
 };

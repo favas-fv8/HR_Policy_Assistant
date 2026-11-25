@@ -42,6 +42,7 @@ urlpatterns = [
     path("api/v1/chat/conversations/new/", ChatViewSet.as_view({"post": "create_conversation"})),
     path("api/v1/chat/conversations/<int:pk>/messages/", ChatViewSet.as_view({"get": "messages"})),
     path("api/v1/chat/conversations/<int:pk>/send/", ChatViewSet.as_view({"post": "send_message"})),
+    path("api/v1/chat/conversations/<int:pk>/delete/", ChatViewSet.as_view({"delete": "delete_conversation"})),
 
     # Authentication - dj_rest_auth login/logout only (no registration)
     path("api/v1/auth/", include("dj_rest_auth.urls")),

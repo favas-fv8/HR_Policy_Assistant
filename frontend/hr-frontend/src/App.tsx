@@ -88,7 +88,8 @@ export default function App() {
     <div className="app-shell">
       <nav className="app-nav">
         <Link to="/" className="app-brand">
-          HR Policy Assistant
+          <img src="/images/icon-image.png" alt="" className="app-brand__icon" />
+          <span>HR Policy Assistant</span>
         </Link>
         <ul className="menu-bar">
           {links.map((link) => (

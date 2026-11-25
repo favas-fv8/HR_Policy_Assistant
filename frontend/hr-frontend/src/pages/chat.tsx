@@ -3,6 +3,7 @@ import {
   sendMessage,
   fetchConversations,
   createConversation,
+  deleteConversation,
   fetchMessages,
 } from '../services/chatService';
 import ChatMessageContent from '../components/ChatMessageContent';
@@ -96,15 +97,34 @@ export default function ChatPage() {
       if (cid) {
         setSelectedConversationId(cid);
         setMessages([]);
+        setError(null);
       }
-      const list = await loadConversations();
-      const createdList = Array.isArray(list) ? list : [];
-      const target = createdList.find((c) => c.id === cid);
-      if (target) {
-        await loadMessages(cid);
-      }
+      await loadConversations();
     } catch (e: any) {
       setError(e?.message || 'Failed to create conversation.');
+    }
+  };
+
+  const handleDeleteConversation = async (e: React.MouseEvent, cid: number) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this conversation?')) return;
+    try {
+      await deleteConversation(cid);
+      const list = await loadConversations();
+      if (selectedConversationId === cid) {
+        if (list.length > 0) {
+          setSelectedConversationId(list[0].id);
+          await loadMessages(list[0].id);
+        } else {
+          const created = await createConversation();
+          const newId = created?.id ?? null;
+          setSelectedConversationId(newId);
+          setMessages([]);
+          await loadConversations();
+        }
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to delete conversation.');
     }
   };
 
@@ -125,7 +145,11 @@ export default function ChatPage() {
       const assistantResp = await sendMessage(selectedConversationId, content);
       const assistantContent = assistantResp?.content ?? 'I apologize, but I was unable to generate a response.';
       const sources: Source[] = normalizeSources(assistantResp?.sources);
+      const conversationTitle = typeof assistantResp?.conversation_title === 'string' ? assistantResp.conversation_title : null;
       setMessages((prev) => [...prev, userMsg, { role: 'assistant', content: assistantContent, sources }]);
+      if (conversationTitle) {
+        setConversations((prev) => prev.map((c) => (c.id === selectedConversationId ? { ...c, title: conversationTitle } : c)));
+      }
       setInput('');
       await loadConversations();
     } catch (e: any) {
@@ -155,12 +179,12 @@ export default function ChatPage() {
   };
 
   return (
-    <div style={{ maxWidth: '1320px', margin: '2rem auto', padding: '0 1rem' }}>
+    <div style={{ width: '100%', maxWidth: '1320px', margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box', alignSelf: 'stretch' }}>
       <div style={{ background: '#fff', padding: '1rem 1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '1rem' }}>
         <h2 style={{ margin: 0, color: '#2c3e50' }}>AI Chatbot</h2>
       </div>
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-        <div style={{ width: '260px', flexShrink: 0 }}>
+      <div className="cb-05" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+        <div style={{ width: '260px', flex: '0 0 260px', minWidth: 0 }}>
           <button
             style={{
               marginBottom: '1rem',
@@ -191,18 +215,62 @@ export default function ChatPage() {
                     cursor: 'pointer',
                     borderBottom: '1px solid #eee',
                     background: selectedConversationId === c.id ? '#eaf2f8' : '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
                   }}
                 >
-                  <div style={{ fontWeight: selectedConversationId === c.id ? 600 : 400, color: '#333' }}>{c.title}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>{formatUpdatedAt(c.updated_at)}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      title={c.title}
+                      style={{
+                        fontWeight: selectedConversationId === c.id ? 600 : 400,
+                        color: '#333',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {c.title}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>{formatUpdatedAt(c.updated_at)}</div>
+                  </div>
+                  <button
+                    type="button"
+                    title="Delete conversation"
+                    aria-label="Delete conversation"
+                    onClick={(e) => handleDeleteConversation(e, c.id)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      padding: '0.2rem',
+                      lineHeight: 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#dc2626'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                      <path d="M10 11v6"></path>
+                      <path d="M14 11v6"></path>
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+                    </svg>
+                  </button>
                 </div>
               ))
             )}
           </div>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="messages cb-05__stage" style={{ minHeight: '400px', height: '520px', overflowY: 'auto', padding: '1.25rem', border: '1px solid #ddd', borderRadius: '14px', background: '#fff', marginBottom: '1rem' }}>
+        <div style={{ flex: '1 1 0%', minWidth: 0, width: '100%' }}>
+          <div className="messages cb-05__stage" style={{ minHeight: '400px', height: '520px', width: '100%', minWidth: 0, maxWidth: 'none', boxSizing: 'border-box', overflowY: 'auto', padding: '1.25rem', border: '1px solid #ddd', borderRadius: '14px', background: '#fff', marginBottom: '1rem' }}>
             <div className="cb-05__thread">
               {messages.length === 0 ? (
                 <p style={{ color: '#8b93a7', textAlign: 'center', marginTop: '6rem' }}>Start a new conversation or select a previous one.</p>

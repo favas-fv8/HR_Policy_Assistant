@@ -1,5 +1,5 @@
 import { useAuth } from '../state/authContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export default function ProfilePage() {
   const { user } = useAuth();

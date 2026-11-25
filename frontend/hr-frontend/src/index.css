@@ -84,6 +84,17 @@ body {
   font-weight: 700;
   letter-spacing: 0.02em;
   text-shadow: 0 2px 12px rgba(0,0,0,0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.app-brand__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
 .menu-bar {
   border-radius: 25px;
@@ -196,12 +207,40 @@ code {
 }
 
 /* CB-05 chat layout - applied to existing React chat */
-.cb-05__stage {
+.cb-05 {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.cb-05__stage,
+div.messages.cb-05__stage {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   background: #fff !important;
   border: 1px solid #ddd !important;
   color: #1f2937;
 }
-.cb-05__thread { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+.cb-05__thread {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.messages.cb-05__stage > .cb-05__thread,
+div.messages.cb-05__stage > .cb-05__thread {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
 .cb-05__turn { display: flex; width: 100%; margin: 0; }
 .cb-05__turn--out { justify-content: flex-end; }
 .cb-05__turn--in { justify-content: flex-start; align-items: flex-start; gap: 10px; }
@@ -287,6 +326,7 @@ code {
 
 /* prevent horizontal overflow */
 .messages, .cb-05__stage, .cb-05__thread, .chat-bubble, .chat-answer-wrap, .chat-answer-section, .chat-md { min-width: 0; max-width: 100%; }
+.messages.cb-05__stage, div.messages.cb-05__stage { width: 100%; max-width: none; }
 
 @media (max-width: 1024px) {
   .chat-bubble.chat-bubble-user { width: 90%; max-width: 90%; flex-basis: 90%; }
@@ -300,4 +340,54 @@ code {
   .chat-bubble.chat-bubble-user { padding: 14px 16px; }
   .chat-answer-section { padding: 16px; }
   .chat-sources { padding: 12px 14px; }
+}
+
+/* Login split card */
+.login-page-wrap {
+  width: 100%;
+  padding: 3rem 1rem;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+}
+.login-card {
+  width: min(960px, 100%);
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.login-card__image,
+.login-card__form {
+  flex: 1 1 50%;
+  min-width: 0;
+}
+.login-card__image {
+  position: relative;
+  min-height: 320px;
+  background: #e5e7eb;
+}
+.login-card__image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.login-card__form {
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+@media (max-width: 768px) {
+  .login-page-wrap { padding: 2rem 1rem; }
+  .login-card { flex-direction: column; width: min(560px, 100%); }
+  .login-card__image { min-height: 220px; height: 220px; flex-basis: auto; }
+  .login-card__form { padding: 2rem 1.5rem; }
 }

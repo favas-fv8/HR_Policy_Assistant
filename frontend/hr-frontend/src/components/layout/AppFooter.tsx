@@ -13,7 +13,9 @@
     >
       <span
         style={{
-          display: 'inline-block',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.6rem',
           padding: '10px 18px',
           borderRadius: '25px',
           backgroundColor: 'rgba(0, 0, 0, .7)',
@@ -23,7 +25,8 @@
           fontWeight: 600,
         }}
       >
-        <strong>HR Policy Assistant</strong> • 2026 • Built for enterprise HR compliance
+        <img src="/images/icon-image.png" alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+        <span><strong>HR Policy Assistant</strong> &middot; 2026 &middot; Built for enterprise HR compliance</span>
       </span>
     </footer>
   );

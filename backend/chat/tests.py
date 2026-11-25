@@ -28,11 +28,11 @@ class ChatSendMessageTests(APITestCase):
             employee_id='HRCHAT',
         )
         self.conversation = Conversation.objects.create(
-            title='Test Conv',
+            title='New Chat',
             employee=self.employee,
         )
 
-    def test_send_message_success(self):
+    def test_send_message_success_generates_title_once(self):
         self.client.force_authenticate(user=self.employee)
         with mock.patch('rag.pipeline.RAGPipeline') as MockPipeline:
             MockPipeline.return_value.answer_question.return_value = {
@@ -42,12 +42,24 @@ class ChatSendMessageTests(APITestCase):
             }
             response = self.client.post(
                 f'/api/v1/chat/conversations/{self.conversation.id}/send/',
-                {'content': 'What is the vacation policy?'},
+                {'content': 'What is the leave policy?'},
                 format='json',
             )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['role'], 'assistant')
-        self.assertEqual(response.data['content'], 'The answer.')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data['role'], 'assistant')
+            self.assertEqual(response.data['content'], 'The answer.')
+            self.conversation.refresh_from_db()
+            self.assertEqual(self.conversation.title, 'Leave Policy')
+            self.assertEqual(response.data['conversation_title'], 'Leave Policy')
+
+            response2 = self.client.post(
+                f'/api/v1/chat/conversations/{self.conversation.id}/send/',
+                {'content': 'Explain maternity leave eligibility'},
+                format='json',
+            )
+            self.assertEqual(response2.status_code, status.HTTP_200_OK)
+            self.conversation.refresh_from_db()
+            self.assertEqual(self.conversation.title, 'Leave Policy')
 
     def test_send_message_requires_content(self):
         self.client.force_authenticate(user=self.employee)
