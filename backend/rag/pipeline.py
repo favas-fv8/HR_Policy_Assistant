@@ -176,6 +176,10 @@ class RAGPipeline:
                 processing_started_at=timezone.now(),
             )
 
+            if not Document.objects.filter(pk=document_id).exists():
+                logger.info("Document %s deleted before extraction; aborting processing.", document_id)
+                return {"document_id": document_id, "status": "deleted", "chunks_created": 0}
+
             pages, page_count = self.extract_pages(document.file.path)
             normalized_pages = [normalize_text(p) for p in pages]
             chunk_specs, stats = self.build_document_chunks(normalized_pages)
@@ -200,11 +204,18 @@ class RAGPipeline:
                 processing_stage_detail=f"Created {total_chunks} chunk(s) ({stats.get('tokenizer','tokenizer')}).",
             )
 
+            if not Document.objects.filter(pk=document_id).exists():
+                logger.info("Document %s deleted before embedding; aborting processing.", document_id)
+                return {"document_id": document_id, "status": "deleted", "chunks_created": 0}
+
             if not chunk_specs:
                 raise RuntimeError("No extractable text chunks were generated from the document.")
 
             chunk_objects = []
             for i, chunk_spec in enumerate(chunk_specs, start=1):
+                if i == 1 and not Document.objects.filter(pk=document_id).exists():
+                    logger.info("Document %s deleted during embedding; aborting.", document_id)
+                    return {"document_id": document_id, "status": "deleted", "chunks_created": 0}
                 embedding = self.embedding_generator.generate_embedding(chunk_spec["text"])
                 if len(embedding) != 3072:
                     raise RuntimeError(
@@ -225,6 +236,10 @@ class RAGPipeline:
                         embedding=embedding,
                     )
                 )
+                if i % 5 == 0 or i == total_chunks:
+                    if not Document.objects.filter(pk=document_id).exists():
+                        logger.info("Document %s deleted during embedding; aborting.", document_id)
+                        return {"document_id": document_id, "status": "deleted", "chunks_created": 0}
                 self._update_progress(
                     document_id,
                     processed_chunks=i,
@@ -234,6 +249,10 @@ class RAGPipeline:
                     processing_stage_detail=f"Embedded {i}/{total_chunks} chunk(s).",
                 )
 
+            if not Document.objects.filter(pk=document_id).exists():
+                logger.info("Document %s deleted before storing; aborting processing.", document_id)
+                return {"document_id": document_id, "status": "deleted", "chunks_created": 0}
+
             self._update_progress(
                 document_id,
                 processing_progress=90,
@@ -242,14 +261,17 @@ class RAGPipeline:
             )
 
             with transaction.atomic():
-                DocumentChunk.objects.filter(document=document).delete()
+                if not Document.objects.filter(pk=document_id).select_for_update().exists():
+                    logger.info("Document %s deleted before final store; aborting.", document_id)
+                    return {"document_id": document_id, "status": "deleted", "chunks_created": 0}
+                DocumentChunk.objects.filter(document_id=document_id).delete()
                 DocumentChunk.objects.bulk_create(chunk_objects)
-                stored_count = DocumentChunk.objects.filter(document=document).count()
+                stored_count = DocumentChunk.objects.filter(document_id=document_id).count()
                 if stored_count != total_chunks:
                     raise RuntimeError(
                         f"Chunk storage mismatch: expected {total_chunks}, stored {stored_count}"
                     )
-                Document.objects.filter(pk=document.pk).update(
+                Document.objects.filter(pk=document_id).update(
                     status="ready",
                     processing_error="",
                     page_count=page_count,
@@ -264,12 +286,15 @@ class RAGPipeline:
                     processing_completed_at=timezone.now(),
                 )
 
-            document.refresh_from_db(fields=[
-                "status", "processing_error", "page_count",
-                "extracted_characters", "extracted_tokens", "extraction_tokenizer",
-                "processing_progress", "processing_stage", "processing_stage_detail",
-                "total_chunks", "processed_chunks",
-            ])
+            try:
+                document.refresh_from_db(fields=[
+                    "status", "processing_error", "page_count",
+                    "extracted_characters", "extracted_tokens", "extraction_tokenizer",
+                    "processing_progress", "processing_stage", "processing_stage_detail",
+                    "total_chunks", "processed_chunks",
+                ])
+            except Document.DoesNotExist:
+                return {"document_id": document_id, "status": "deleted", "chunks_created": 0}
             return {
                 "document_id": document.id,
                 "chunks_created": len(chunk_objects),

@@ -23,30 +23,38 @@ def _safe_error_message(exc: Exception) -> str:
 def process_document_task(document_id: int) -> None:
     """Extract, chunk, embed and store a document's content."""
     from django.db import connection
-    from django.db.models import F
 
     from documents.models import Document
 
     try:
+        if not Document.objects.filter(pk=document_id).exists():
+            logger.info("Skipping processing for missing document_id=%s (likely deleted).", document_id)
+            return
+
         from rag.pipeline import RAGPipeline
 
         pipeline = RAGPipeline()
         pipeline.process_document(document_id)
         logger.info("Document %s processed successfully", document_id)
+    except Document.DoesNotExist:
+        logger.info("Document %s no longer exists; skipping processing result writes.", document_id)
     except Exception as exc:
         logger.exception("Failed to process document %s", document_id)
         try:
             from django.utils import timezone
             doc = Document.objects.filter(pk=document_id).first()
-            current = int(getattr(doc, "processing_progress", 0) or 0) if doc else 0
-            Document.objects.filter(pk=document_id).update(
-                status="error",
-                processing_error=_safe_error_message(exc),
-                processing_stage="error",
-                processing_stage_detail="Processing failed.",
-                processing_progress=min(max(current, 0), 99),
-                processing_completed_at=timezone.now(),
-            )
+            if doc is None:
+                logger.info("Document %s deleted during processing; skipping error status update.", document_id)
+            else:
+                current = int(getattr(doc, "processing_progress", 0) or 0)
+                Document.objects.filter(pk=document_id).update(
+                    status="error",
+                    processing_error=_safe_error_message(exc),
+                    processing_stage="error",
+                    processing_stage_detail="Processing failed.",
+                    processing_progress=min(max(current, 0), 99),
+                    processing_completed_at=timezone.now(),
+                )
         except Exception:
             logger.exception("Failed to mark document %s as error", document_id)
     finally:

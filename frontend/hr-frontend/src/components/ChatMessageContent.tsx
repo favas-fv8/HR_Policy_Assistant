@@ -6,6 +6,7 @@ interface Source {
   document_title?: string;
   page_number?: number | string | null;
   excerpt?: string;
+  document_deleted?: boolean;
 }
 
 interface Props {
@@ -68,7 +69,8 @@ export default function ChatMessageContent({ role, content, sources = [] }: Prop
               const title = asText(s.document_title || 'Unknown document');
               const docId = getDocumentId(s.document_id);
               const page = getPage(s.page_number);
-              const href = docId ? `/documents/${docId}/view${page ? `?page=${page}` : ''}` : null;
+              const deleted = s.document_deleted === true;
+              const href = !deleted && docId ? `/documents/${docId}/view${page ? `?page=${page}` : ''}` : null;
               return (
                 <div key={`${title}-${docId ?? 'x'}-${page ?? 'na'}-${i}`} className="chat-source-card">
                   <div className="chat-source-meta">
@@ -80,11 +82,13 @@ export default function ChatMessageContent({ role, content, sources = [] }: Prop
                     {href ? (
                       <a href={href} target="_blank" rel="noreferrer noopener" className="chat-source-link">{title}</a>
                     ) : (
-                      <span className="chat-source-missing" title="Source document unavailable">{title} (unavailable)</span>
+                      <span className="chat-source-missing" title="Source document unavailable">
+                        {deleted ? `${title} (Source document deleted or unavailable)` : `${title} (unavailable)`}
+                      </span>
                     )}
                   </div>
-                  <div className="chat-source-page">Page {page ?? 'N/A'}</div>
-                  {s.excerpt ? <div className="chat-source-excerpt">{asText(s.excerpt)}</div> : null}
+                  {!deleted && <div className="chat-source-page">Page {page ?? 'N/A'}</div>}
+                  {!deleted && s.excerpt ? <div className="chat-source-excerpt">{asText(s.excerpt)}</div> : null}
                 </div>
               );
             })}

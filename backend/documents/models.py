@@ -1,8 +1,21 @@
-from django.db import models
+from django.db import models, transaction
 from django.core.exceptions import ValidationError
 import json
+import logging
 
 from accounts.models import CustomUser
+
+logger = logging.getLogger(__name__)
+
+
+def _cleanup_stored_file(file_name, storage):
+    if not file_name or not storage:
+        return
+    try:
+        if storage.exists(file_name):
+            storage.delete(file_name)
+    except Exception:
+        logger.exception("Failed to cleanup document file from storage (name=%s)", file_name)
 
 
 def validate_vector_dimensions(value):
@@ -72,6 +85,21 @@ class VectorField(models.JSONField):
         return super().from_db_value(value, expression, connection)
 
 
+class DocumentQuerySet(models.QuerySet):
+    def delete(self):
+        to_delete = list(self.only("file"))
+        result = super().delete()
+        for doc in to_delete:
+            file_name = getattr(getattr(doc, "file", None), "name", None)
+            storage = getattr(getattr(doc, "file", None), "storage", None)
+
+            def _do_cleanup(fn=file_name, st=storage):
+                _cleanup_stored_file(fn, st)
+
+            transaction.on_commit(_do_cleanup)
+        return result
+
+
 class Document(models.Model):
     """HR Policy document uploaded by HR Admin."""
     STATUS_CHOICES = [
@@ -115,18 +143,31 @@ class Document(models.Model):
     processing_attempt = models.PositiveIntegerField(default=0)
     processing_started_at = models.DateTimeField(null=True, blank=True)
     processing_completed_at = models.DateTimeField(null=True, blank=True)
-    
+
+    objects = DocumentQuerySet.as_manager()
+
     class Meta:
         ordering = ["-uploaded_at"]
         verbose_name = "HR Policy Document"
         verbose_name_plural = "HR Policy Documents"
-    
+
     def __str__(self):
         return f"{self.title} ({self.uploaded_at.strftime('%Y-%m-%d')})"
-    
+
     @property
     def file_path(self):
         return self.file.url
+
+    def delete(self, *args, **kwargs):
+        file_name = getattr(self.file, "name", None)
+        storage = getattr(self.file, "storage", None)
+        result = super().delete(*args, **kwargs)
+
+        def _do_cleanup(fn=file_name, st=storage):
+            _cleanup_stored_file(fn, st)
+
+        transaction.on_commit(_do_cleanup)
+        return result
 
 
 class DocumentChunk(models.Model):

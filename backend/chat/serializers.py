@@ -33,36 +33,51 @@ class MessageSerializer(serializers.ModelSerializer):
         read_only_fields = ["conversation"]
 
     def get_sources(self, obj):
-        """Normalize sources to a list of source objects.
-
-        The DB field default is a dict for legacy reasons; some rows may
-        contain dict/None. The API contract is always a list.
-        """
+        """Normalize sources to a list of source objects."""
         raw = obj.sources
         if raw is None:
             return []
         if isinstance(raw, list):
-            # keep only dict-like source entries with expected keys
-            normalized = []
-            for item in raw:
-                if isinstance(item, dict):
-                    normalized.append({
-                        "document_id": item.get("document_id"),
-                        "document_title": item.get("document_title") or item.get("title") or "Unknown document",
-                        "page_number": item.get("page_number"),
-                        "excerpt": item.get("excerpt") or item.get("chunk_text") or "",
-                    })
-            return normalized
-        if isinstance(raw, dict):
-            # empty dict or single source dict
+            items = raw
+        elif isinstance(raw, dict):
             if not raw:
                 return []
             if "document_title" in raw or "page_number" in raw or "title" in raw:
-                return [{
-                    "document_id": raw.get("document_id"),
-                    "document_title": raw.get("document_title") or raw.get("title") or "Unknown document",
-                    "page_number": raw.get("page_number"),
-                    "excerpt": raw.get("excerpt") or raw.get("chunk_text") or "",
-                }]
+                items = [raw]
+            else:
+                return []
+        else:
             return []
-        return []
+
+        from documents.models import Document
+
+        normalized = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            doc_id = item.get("document_id")
+            doc_title = item.get("document_title") or item.get("title") or "Unknown document"
+            page_number = item.get("page_number")
+            excerpt = item.get("excerpt") or item.get("chunk_text") or ""
+            if doc_id is not None:
+                try:
+                    doc_id_int = int(doc_id)
+                except (TypeError, ValueError):
+                    doc_id_int = None
+                if doc_id_int is not None and not Document.objects.filter(pk=doc_id_int).exists():
+                    normalized.append({
+                        "document_id": None,
+                        "document_title": doc_title,
+                        "page_number": None,
+                        "excerpt": "",
+                        "document_deleted": True,
+                    })
+                    continue
+            normalized.append({
+                "document_id": doc_id if (isinstance(doc_id, (int, str)) and doc_id != "") else doc_id,
+                "document_title": doc_title,
+                "page_number": page_number,
+                "excerpt": excerpt,
+                "document_deleted": False,
+            })
+        return normalized
