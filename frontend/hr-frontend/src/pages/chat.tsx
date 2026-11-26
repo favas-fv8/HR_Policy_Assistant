@@ -7,6 +7,7 @@ import {
   fetchMessages,
 } from '../services/chatService';
 import ChatMessageContent from '../components/ChatMessageContent';
+import { ApiError } from '../services/http';
 
 interface Source {
   document_id?: number | string | null;
@@ -16,6 +17,7 @@ interface Source {
 }
 
 interface ChatMessage {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
   sources?: Source[];
@@ -28,6 +30,12 @@ interface Conversation {
   employee_name?: string;
 }
 
+let chatMsgSeq = 0;
+const nextMsgId = () => {
+  chatMsgSeq += 1;
+  return `cm_${Date.now()}_${chatMsgSeq}`;
+};
+
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null);
@@ -37,6 +45,7 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const bootstrapped = useRef(false);
   const startingRef = useRef(false);
+  const requestSeqRef = useRef(0);
 
   const loadConversations = async () => {
     try {
@@ -54,6 +63,7 @@ export default function ChatPage() {
     try {
       const msgs = await fetchMessages(cid);
       const mapped = (Array.isArray(msgs) ? msgs : []).map((m: any) => ({
+        id: `srv_${m.id ?? nextMsgId()}`,
         role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
         content: m.content ?? '',
         sources: normalizeSources(m.sources),
@@ -69,7 +79,6 @@ export default function ChatPage() {
     bootstrapped.current = true;
     (async () => {
       await loadConversations();
-      // Default to draft (no conversation created)
       setSelectedConversationId(null);
       setMessages([]);
     })();
@@ -77,11 +86,10 @@ export default function ChatPage() {
   }, []);
 
   const handleCreateConversation = async () => {
-    // If already in empty draft, do nothing (no new DB record, no API call)
     if (selectedConversationId === null && messages.length === 0) {
       return;
     }
-    // Open fresh draft
+    requestSeqRef.current += 1;
     setSelectedConversationId(null);
     setMessages([]);
     setError(null);
@@ -94,6 +102,7 @@ export default function ChatPage() {
       await deleteConversation(cid);
       await loadConversations();
       if (selectedConversationId === cid) {
+        requestSeqRef.current += 1;
         setSelectedConversationId(null);
         setMessages([]);
       }
@@ -103,6 +112,7 @@ export default function ChatPage() {
   };
 
   const handleSelectConversation = async (cid: number) => {
+    requestSeqRef.current += 1;
     setSelectedConversationId(cid);
     setError(null);
     await loadMessages(cid);
@@ -112,30 +122,30 @@ export default function ChatPage() {
     e.preventDefault();
     if (!input.trim() || sending) return;
     const content = input.trim();
-    setSending(true);
+    const reqId = requestSeqRef.current + 1;
+    requestSeqRef.current = reqId;
     setError(null);
+    setSending(true);
+    setInput('');
 
-    // Draft: create conversation on first message
     if (selectedConversationId === null) {
       if (startingRef.current) {
         setSending(false);
         return;
       }
       startingRef.current = true;
+      const optimisticUserId = nextMsgId();
+      setMessages((prev) => [...prev, { id: optimisticUserId, role: 'user', content }]);
       try {
         const resp = await startConversation(content);
+        if (requestSeqRef.current !== reqId) return;
         const newCid = resp?.conversation_id as number | undefined;
-        const assistantContent = resp?.content ?? 'I apologize, but I was unable to generate a response.';
+        const assistantContent = resp?.content ?? "I'm sorry, but I encountered an error while processing your question. Please try again or contact support.";
         const sources: Source[] = normalizeSources(resp?.sources);
         const conversationTitle = typeof resp?.conversation_title === 'string' ? resp.conversation_title : 'New Chat';
-
-        const userMsg: ChatMessage = { role: 'user', content };
-        setMessages([{ ...userMsg }, { role: 'assistant', content: assistantContent, sources }]);
-        setInput('');
-
+        setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: assistantContent, sources }]);
         if (newCid) {
           setSelectedConversationId(newCid);
-          // Prepend new conversation to list
           setConversations((prev) => {
             const exists = prev.some((c) => c.id === newCid);
             const newConv: Conversation = resp?.conversation
@@ -149,7 +159,22 @@ export default function ChatPage() {
           await loadConversations();
         }
       } catch (e: any) {
-        setError(e?.message || 'Failed to send message.');
+        if (requestSeqRef.current !== reqId) return;
+        const apiErr = e as ApiError;
+        const data = apiErr?.data;
+        const recoveredId = data && typeof data === 'object' && typeof data.conversation_id === 'number'
+          ? data.conversation_id
+          : null;
+        if (recoveredId) {
+          setError(apiErr?.message || e?.message || 'Assistant response failed. You can retry by sending another message in this conversation.');
+          setSelectedConversationId(recoveredId);
+          await loadMessages(recoveredId);
+          await loadConversations();
+        } else {
+          setMessages((prev) => prev.filter((m) => m.id !== optimisticUserId));
+          setInput(content);
+          setError(apiErr?.message || e?.message || 'Failed to send message.');
+        }
       } finally {
         startingRef.current = false;
         setSending(false);
@@ -157,23 +182,26 @@ export default function ChatPage() {
       return;
     }
 
-    // Existing conversation
-    const userMsg: ChatMessage = { role: 'user', content };
+    const activeCid = selectedConversationId;
+    const optimisticUserId = nextMsgId();
+    setMessages((prev) => [...prev, { id: optimisticUserId, role: 'user', content }]);
     try {
-      const assistantResp = await sendMessage(selectedConversationId, content);
-      const assistantContent = assistantResp?.content ?? 'I apologize, but I was unable to generate a response.';
+      const assistantResp = await sendMessage(activeCid, content);
+      if (requestSeqRef.current !== reqId || selectedConversationId !== activeCid) return;
+      const assistantContent = assistantResp?.content ?? "I'm sorry, but I encountered an error while processing your question. Please try again or contact support.";
       const sources: Source[] = normalizeSources(assistantResp?.sources);
       const conversationTitle = typeof assistantResp?.conversation_title === 'string' ? assistantResp.conversation_title : null;
-      setMessages((prev) => [...prev, userMsg, { role: 'assistant', content: assistantContent, sources }]);
+      setMessages((prev) => [...prev, { id: nextMsgId(), role: 'assistant', content: assistantContent, sources }]);
       if (conversationTitle) {
-        setConversations((prev) => prev.map((c) => (c.id === selectedConversationId ? { ...c, title: conversationTitle } : c)));
+        setConversations((prev) => prev.map((c) => (c.id === activeCid ? { ...c, title: conversationTitle } : c)));
       }
-      setInput('');
       await loadConversations();
     } catch (e: any) {
-      setError(e?.message || 'Failed to send message.');
+      if (requestSeqRef.current !== reqId) return;
+      setError((e as ApiError)?.message || e?.message || 'Failed to send message.');
+      await loadMessages(activeCid);
     } finally {
-      setSending(false);
+      if (requestSeqRef.current === reqId) setSending(false);
     }
   };
 

@@ -112,8 +112,14 @@ class ChatViewSet(viewsets.ViewSet):
             except Exception as e:
                 import traceback
                 traceback.print_exc()
+                conv_data = ConversationSerializer(conversation).data
                 return Response(
-                    {"error": "Failed to create assistant response."},
+                    {
+                        "error": "Failed to create assistant response.",
+                        "conversation_id": conversation.id,
+                        "conversation": conv_data,
+                        "conversation_title": conversation.title,
+                    },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
