@@ -25,9 +25,11 @@ export default function DocumentsPage() {
   const [viewingDoc, setViewingDoc] = useState<Document | null>(null);
   const [viewingChunks, setViewingChunks] = useState<any[] | null>(null);
   const [statusById, setStatusById] = useState<Record<number, DocumentProcessingStatus>>({});
+  const [trackedIds, setTrackedIds] = useState<number[]>([]);
+  const trackedIdsRef = useRef<number[]>([]);
+  const viewingDocIdRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
-  const pollingIdRef = useRef<number | null>(null);
-  const inFlightRef = useRef(false);
+  const inFlightRef = useRef<Set<number>>(new Set());
 
   const isAdmin = user?.role === 'hr_admin';
 
@@ -36,8 +38,29 @@ export default function DocumentsPage() {
       window.clearInterval(pollRef.current);
       pollRef.current = null;
     }
-    pollingIdRef.current = null;
-    inFlightRef.current = false;
+    // in-flight entries are cleared by their own finally blocks so effect
+    // re-runs never allow overlapping requests for the same document.
+  };
+
+  const updateTrackedIds = (ids: number[]) => {
+    const unique = Array.from(new Set(ids));
+    trackedIdsRef.current = unique;
+    setTrackedIds(unique);
+  };
+
+  const addTrackedIds = (ids: number[]) => {
+    if (!ids.length) return;
+    updateTrackedIds([...trackedIdsRef.current, ...ids]);
+  };
+
+  const removeTrackedId = (id: number) => {
+    if (!trackedIdsRef.current.includes(id)) return;
+    updateTrackedIds(trackedIdsRef.current.filter((x) => x !== id));
+  };
+
+  const setViewingDocTracked = (doc: Document | null) => {
+    viewingDocIdRef.current = doc ? doc.id : null;
+    setViewingDoc(doc);
   };
 
   const mergeStatusIntoDoc = (doc: Document, st?: DocumentProcessingStatus): Document => {
@@ -60,74 +83,90 @@ export default function DocumentsPage() {
 
   const getDocStatus = (doc: Document) => statusById[doc.id] ? mergeStatusIntoDoc(doc, statusById[doc.id]) : doc;
 
-  const loadDocuments = async () => {
+  const loadDocuments = async (): Promise<Document[]> => {
     setLoading(true);
     setError(null);
     try {
       const data = await fetchDocuments();
-      setDocumentsList(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setDocumentsList(list);
+      return list;
     } catch (e: any) {
       setError(e?.message || 'Failed to load documents.');
       setDocumentsList([]);
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadDocuments();
-    return () => stopPolling();
+    let cancelled = false;
+    (async () => {
+      const list = await loadDocuments();
+      if (!cancelled) {
+        addTrackedIds(list.filter((d) => !isTerminalStatus(d.status)).map((d) => d.id));
+      }
+    })();
+    return () => {
+      cancelled = true;
+      stopPolling();
+    };
   }, []);
 
   useEffect(() => {
-    const doc = viewingDoc;
-    if (!doc) {
+    if (trackedIds.length === 0) {
       stopPolling();
       return;
     }
 
     let cancelled = false;
-    const docId = doc.id;
 
-    const poll = async () => {
-      if (cancelled || inFlightRef.current || pollingIdRef.current !== docId) return;
-      inFlightRef.current = true;
+    const pollOne = async (docId: number) => {
+      if (cancelled || inFlightRef.current.has(docId) || !trackedIdsRef.current.includes(docId)) return;
+      inFlightRef.current.add(docId);
       try {
         const st = await fetchDocumentStatus(docId);
-        if (cancelled || pollingIdRef.current !== docId) return;
+        if (cancelled || !trackedIdsRef.current.includes(docId)) return;
         setStatusById((prev) => ({ ...prev, [docId]: st }));
-        setViewingDoc((prev) => (prev && prev.id === docId ? mergeStatusIntoDoc(prev, st) : prev));
         setDocumentsList((prev) => prev.map((d) => (d.id === docId ? mergeStatusIntoDoc(d, st) : d)));
+        setViewingDoc((prev) => (prev && prev.id === docId ? mergeStatusIntoDoc(prev, st) : prev));
         if (isTerminalStatus(st.status)) {
-          stopPolling();
-          // Refresh once for accurate chunk_count/chunks when done
-          fetchDocumentChunks(docId).then((chunks) => {
-            if (!cancelled && pollingIdRef.current == null) {
-              setViewingChunks(Array.isArray(chunks) ? chunks : []);
+          removeTrackedId(docId);
+          if (viewingDocIdRef.current === docId) {
+            try {
+              const chunks = await fetchDocumentChunks(docId);
+              if (!cancelled && viewingDocIdRef.current === docId) {
+                setViewingChunks(Array.isArray(chunks) ? chunks : []);
+              }
+            } catch {
+              // Keep previous chunk view on transient failure
             }
-          }).catch(() => {});
-          loadDocuments().catch(() => {});
+          }
+          await loadDocuments();
         }
       } catch {
         // Keep last known state; avoid noisy UI on transient poll failures
       } finally {
-        inFlightRef.current = false;
+        inFlightRef.current.delete(docId);
       }
     };
 
-    stopPolling();
-    pollingIdRef.current = docId;
-    void poll();
-    if (!isTerminalStatus(doc.status)) {
-      pollRef.current = window.setInterval(poll, 1000);
+    const pollAll = () => {
+      trackedIdsRef.current.forEach((id) => { void pollOne(id); });
+    };
+
+    pollAll();
+    if (pollRef.current === null) {
+      pollRef.current = window.setInterval(pollAll, 1000);
     }
 
     return () => {
       cancelled = true;
-      if (pollingIdRef.current === docId) stopPolling();
+      stopPolling();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewingDoc?.id]);
+  }, [trackedIds]);
 
   const handleUploadFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -146,10 +185,30 @@ export default function DocumentsPage() {
     setSuccess(null);
     try {
       const title = uploadTitle.trim() || uploadFile.name.replace(/\.pdf$/i, '');
-      await uploadDocument(uploadFile, title);
+      const created = await uploadDocument(uploadFile, title);
       setSuccess('Document uploaded successfully.');
       setUploadTitle('');
       setUploadFile(null);
+      const createdId = typeof created?.id === 'number' ? created.id : null;
+      if (createdId) {
+        setStatusById((prev) => ({
+          ...prev,
+          [createdId]: {
+            id: createdId,
+            title,
+            status: 'started',
+            processing_progress: 0,
+            processing_stage: 'uploaded',
+            processing_stage_detail: 'Document uploaded.',
+            total_chunks: 0,
+            processed_chunks: 0,
+            chunk_count: 0,
+            page_count: 0,
+            processing_error: '',
+          },
+        }));
+        addTrackedIds([createdId]);
+      }
       await loadDocuments();
     } catch (e: any) {
       setError(e?.message || 'Failed to upload document.');
@@ -166,11 +225,11 @@ export default function DocumentsPage() {
         fetchDocumentStatus(doc.id).catch(() => null),
       ]);
       if (st) setStatusById((prev) => ({ ...prev, [doc.id]: st }));
-      setViewingDoc(mergeStatusIntoDoc(doc, st || undefined));
+      setViewingDocTracked(mergeStatusIntoDoc(doc, st || undefined));
       setViewingChunks(Array.isArray(chunks) ? chunks : []);
     } catch (e: any) {
       setError(e?.message || 'Failed to load document details.');
-      setViewingDoc(null);
+      setViewingDocTracked(null);
       setViewingChunks(null);
     }
   };
@@ -179,7 +238,13 @@ export default function DocumentsPage() {
     try {
       await deleteDocument(doc.id);
       setSuccess('Document deleted successfully.');
-      setViewingDoc(null);
+      removeTrackedId(doc.id);
+      setStatusById((prev) => {
+        const next = { ...prev };
+        delete next[doc.id];
+        return next;
+      });
+      setViewingDocTracked(null);
       setViewingChunks(null);
       await loadDocuments();
     } catch (e: any) {
@@ -208,6 +273,7 @@ export default function DocumentsPage() {
       };
       setStatusById((prev) => ({ ...prev, [doc.id]: optimistic }));
       setViewingDoc((prev) => (prev && prev.id === doc.id ? mergeStatusIntoDoc(prev, optimistic) : prev));
+      addTrackedIds([doc.id]);
       await loadDocuments();
     } catch (e: any) {
       setError(e?.message || 'Failed to reprocess document.');
@@ -257,6 +323,9 @@ export default function DocumentsPage() {
           <ul className="documents-page-neural__list">
             {documentsList.map((rawDoc: Document) => {
               const doc = getDocStatus(rawDoc);
+              const rawProgress = Number(doc.processing_progress ?? 0);
+              const clamped = Number.isFinite(rawProgress) ? Math.max(0, Math.min(99, rawProgress)) : 0;
+              const rowProgress = doc.status === 'ready' || doc.status === 'completed' ? 100 : clamped;
               return (
               <li key={doc.id} className="documents-page-neural__item">
                 <div className="documents-page-neural__item-row">
@@ -266,7 +335,20 @@ export default function DocumentsPage() {
                       ({(doc.page_count ?? 0)} pages)
                     </span>
                     <div className="documents-page-neural__doc-status">
-                      Status: {doc.status} | Progress: {doc.processing_progress ?? (doc.status === 'ready' ? 100 : 0)}% | Chunks: {doc.chunk_count ?? 0} | Attempt: {doc.processing_attempt ?? 0}
+                      Status: {doc.status} | Progress: {rowProgress}% | Chunks: {doc.chunk_count ?? 0} | Attempt: {doc.processing_attempt ?? 0}
+                    </div>
+                    <div
+                      className="documents-page-neural__doc-progress"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={rowProgress}
+                      aria-label={`Processing progress for ${doc.title}`}
+                    >
+                      <div
+                        className={`documents-page-neural__progress-bar${doc.status === 'error' ? ' is-error' : ''}`}
+                        style={{ width: `${rowProgress}%` }}
+                      />
                     </div>
                   </div>
                   <div className={isAdmin ? "documents-page-neural__actions is-admin" : "documents-page-neural__actions"}>
@@ -334,7 +416,7 @@ export default function DocumentsPage() {
           <section className="neural-card neural-page__panel">
             <div className="documents-page-neural__detail-head">
               <h2 className="neural-page__section-title documents-page-neural__detail-title">Document Details: {doc.title}</h2>
-              <button type="button" onClick={() => { setViewingDoc(null); setViewingChunks(null); }} className="neural-btn neural-btn--secondary neural-btn--sm">Close</button>
+              <button type="button" onClick={() => { setViewingDocTracked(null); setViewingChunks(null); }} className="neural-btn neural-btn--secondary neural-btn--sm">Close</button>
             </div>
 
             <div className="documents-page-neural__section">

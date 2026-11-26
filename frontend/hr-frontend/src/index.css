@@ -718,6 +718,7 @@ div.messages.cb-05__stage > .cb-05__thread {
 .documents-page-neural__doc-title { color:var(--n-text); font-weight:500; font-size:15px; }
 .documents-page-neural__doc-meta { color:var(--n-muted); margin-left:8px; font-size:14px; }
 .documents-page-neural__doc-status { color:var(--n-muted); font-size:13px; margin-top:4px; }
+.documents-page-neural__doc-progress { width:100%; max-width:260px; height:6px; margin-top:6px; background:rgba(163,161,242,0.15); border-radius:999px; overflow:hidden; }
 .documents-page-neural__file { margin-bottom:12px; color:var(--n-muted); font-size:14px; }
 .documents-page-neural__progress-meta { display:flex; justify-content:space-between; margin-bottom:6px; color:var(--n-muted); font-size:14px; }
 .documents-page-neural__progress { width:100%; height:10px; background:rgba(163,161,242,0.15); border-radius:999px; overflow:hidden; }
