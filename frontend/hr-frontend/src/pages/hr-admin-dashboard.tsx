@@ -26,116 +26,57 @@ export default function HRAdminDashboard() {
   }, [user, token]);
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="hr-admin-home">
       {!user ? (
-        <div style={{ border: '2px solid #dc3545', borderRadius: '8px', padding: '2rem', textAlign: 'center', margin: '2rem 0' }}>
-          <h3 style={{ color: '#dc3e50', marginBottom: '0.5rem' }}>Access Denied</h3>
-          <p style={{ color: '#555', marginBottom: '1rem' }}>
-            You must be logged in to view this page.
-          </p>
-          <button
-            style={{
-              padding: '0.5rem 1rem',
-              background: '#2c3e50',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-            onClick={() => navigate('/login')}
-          >
+        <div className="neural-card hr-admin-home__panel hr-admin-home__panel--center">
+          <h3 className="hr-admin-home__error-title">Access Denied</h3>
+          <p className="hr-admin-home__muted">You must be logged in to view this page.</p>
+          <button className="neural-btn neural-btn--primary" onClick={() => navigate('/login')}>
             Login
           </button>
         </div>
       ) : user.role !== 'hr_admin' ? (
-        <div style={{ border: '2px solid #dc3545', borderRadius: '8px', padding: '2rem', textAlign: 'center', margin: '2rem 0' }}>
-          <h3 style={{ color: '#dc3e50', marginBottom: '0.5rem' }}>Access Denied</h3>
-          <p style={{ color: '#555', marginBottom: '1rem' }}>
-            You do not have HR Admin privileges to view this page.
-          </p>
-          <p style={{ color: '#555' }}>
-            <Link to="/employee-dashboard" style={{ color: '#3498db' }}>Go to Employee Dashboard</Link>
-            or <Link to="/login" style={{ color: '#3498db' }}>Logout</Link>.
+        <div className="neural-card hr-admin-home__panel hr-admin-home__panel--center">
+          <h3 className="hr-admin-home__error-title">Access Denied</h3>
+          <p className="hr-admin-home__muted">You do not have HR Admin privileges to view this page.</p>
+          <p className="hr-admin-home__muted">
+            <Link to="/employee-dashboard" className="neural-link">Go to Employee Dashboard</Link>
+            {' '}or <Link to="/login" className="neural-link">Logout</Link>.
           </p>
         </div>
       ) : (
         <>
-          <section style={{ marginBottom: '2rem' }}>
-            <div style={{
-              padding: '1.25rem 1.5rem',
-              borderRadius: '12px',
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
-            }}>
-              <h1 style={{ fontSize: '32px', fontWeight: 600, color: '#1a1a2e', marginBottom: '0.5rem', marginTop: 0 }}>
-                HR Admin Dashboard
-              </h1>
-              <p style={{ color: '#3f3f46', marginBottom: 0 }}>
-                Manage policy documents and view system analytics.
-              </p>
-            </div>
+          <section className="neural-card hr-admin-home__panel">
+            <h1 className="hr-admin-home__title">HR Admin Dashboard</h1>
+            <p className="hr-admin-home__subtitle">Manage policy documents and view system analytics.</p>
           </section>
 
-          <section style={{
-            padding: '1.25rem 1.5rem',
-            borderRadius: '12px',
-            background: '#fff',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
-          }}>
-            <h2 style={{ fontSize: '1.25rem', color: '#1f2937', marginBottom: '1rem', marginTop: 0 }}>
-              Document Library
-            </h2>
+          <section className="neural-card hr-admin-home__panel">
+            <h2 className="hr-admin-home__section-title">Document Library</h2>
 
             {loading ? (
-              <p style={{ color: '#374151', margin: 0 }}>Loading documents...</p>
+              <p className="hr-admin-home__muted">Loading documents...</p>
             ) : documents.length === 0 ? (
-              <p style={{ color: '#374151', marginBottom: '1.5rem' }}>
-                No documents uploaded yet. <Link to="/documents" style={{ color: '#1d4ed8' }}>Upload your first document</Link>.
+              <p className="hr-admin-home__muted">
+                No documents uploaded yet. <Link to="/documents" className="neural-link">Upload your first document</Link>.
               </p>
             ) : (
-              <ul style={{ listStyle: 'none', padding: '0', margin: '0' }}>
+              <ul className="hr-admin-home__list">
                 {documents.map((doc: any) => (
-                  <li key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid rgba(255,255,255,0.35)' }}>
-                    <span style={{ color: '#1f2937', fontWeight: 500 }}>{doc.title}</span>
-                    <span style={{ color: '#374151', marginLeft: '1rem' }}>({doc.page_count} pages)</span>
+                  <li key={doc.id} className="hr-admin-home__list-item">
+                    <span className="hr-admin-home__doc-title">{doc.title}</span>
+                    <span className="hr-admin-home__doc-meta">({doc.page_count} pages)</span>
                   </li>
                 ))}
               </ul>
             )}
           </section>
 
-          <section style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-            <Link
-              to="/documents"
-              style={{
-                display: 'inline-block',
-                padding: '0.5rem 1rem',
-                background: '#3498db',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                textDecoration: 'none',
-              }}
-            >
+          <section className="hr-admin-home__actions">
+            <Link to="/documents" className="neural-btn neural-btn--primary hr-admin-home__action-link">
               Go to Document Management
             </Link>
-            <button
-              onClick={loadDocuments}
-              style={{
-                padding: '0.5rem 1rem',
-                background: '#6b7280',
-                border: '1px solid #6b7280',
-                color: '#fff',
-                borderRadius: '6px',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                marginLeft: 'auto',
-              }}
-            >
+            <button onClick={loadDocuments} className="neural-btn neural-btn--secondary">
               Refresh
             </button>
           </section>

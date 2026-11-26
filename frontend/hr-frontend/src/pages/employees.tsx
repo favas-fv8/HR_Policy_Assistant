@@ -44,9 +44,11 @@ export default function EmployeesPage() {
 
   if (user.role !== 'hr_admin') {
     return (
-      <div style={{ maxWidth: '600px', margin: '5rem auto', padding: '2rem', background: '#fff', borderRadius: '8px', textAlign: 'center' }}>
-        <h2 style={{ color: '#dc3545', marginBottom: '1rem' }}>Access Denied</h2>
-        <p style={{ color: '#555' }}>Only HR Admins can manage employee accounts.</p>
+      <div className="neural-page neural-page--narrow">
+        <div className="neural-card neural-page__panel neural-page__panel--center">
+          <h2 className="neural-page__error-title">Access Denied</h2>
+          <p className="neural-page__muted">Only HR Admins can manage employee accounts.</p>
+        </div>
       </div>
     );
   }
@@ -241,41 +243,20 @@ export default function EmployeesPage() {
     }
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '0.6rem',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-    fontSize: '0.95rem',
-    marginBottom: '0.5rem',
-  };
-
-  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '0.25rem', color: '#333', fontSize: '0.9rem', textAlign: 'left' };
-
-  const buttonStyle: React.CSSProperties = {
-    padding: '0.5rem 1rem',
-    background: '#2c3e50',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '0.9rem',
-    cursor: 'pointer',
-  };
-
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ background: '#fff', padding: '1.5rem 2rem', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: 600, color: '#1a1a2e', marginBottom: '0.5rem', marginTop: 0 }}>Employee Management</h1>
-        <p style={{ color: '#52525b', marginBottom: 0 }}>Create and manage employee accounts.</p>
+    <div className="neural-page employees-page">
+      <div className="neural-card neural-page__panel">
+        <h1 className="neural-page__title">Employee Management</h1>
+        <p className="neural-page__subtitle">Create and manage employee accounts.</p>
       </div>
 
-      {error && <p style={{ color: '#e74c32', marginBottom: '1rem' }}>{error}</p>}
-      {success && <p style={{ color: '#27ae60', marginBottom: '1rem' }}>{success}</p>}
+      {error && <p className="neural-page__message neural-page__message--error">{error}</p>}
+      {success && <p className="neural-page__message neural-page__message--success">{success}</p>}
 
-      <div style={{ marginBottom: '1rem' }}>
+      <div className="employees-page__toolbar">
         <button
           type="button"
-          style={buttonStyle}
+          className="neural-btn neural-btn--secondary"
           onClick={() => {
             setShowCreateForm((v) => !v);
             setFieldErrors({});
@@ -287,68 +268,68 @@ export default function EmployeesPage() {
       </div>
 
       {showCreateForm && (
-      <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.25rem', color: '#2c3e50', marginBottom: '1rem' }}>Create Employee</h2>
-        <form onSubmit={handleCreate} style={{ maxWidth: '700px' }}>
-          <div style={{ marginBottom: '0.5rem' }}>
-            <label style={labelStyle}>Employee ID (will be used as User ID)</label>
+      <section className="neural-card neural-page__panel">
+        <h2 className="neural-page__section-title">Create Employee</h2>
+        <form onSubmit={handleCreate} className="employees-page__form">
+          <div className="employees-page__field">
+            <label className="neural-label">Employee ID (will be used as User ID)</label>
             <input
-              style={inputStyle}
+              className="neural-input"
               value={form.employeeId}
               onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
               required
             />
-            {fieldErrors.employeeId && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{fieldErrors.employeeId}</div>}
+            {fieldErrors.employeeId && <div className="neural-field-error">{fieldErrors.employeeId}</div>}
           </div>
-          <div style={{ marginBottom: '0.5rem' }}>
-            <label style={labelStyle}>Full Name</label>
+          <div className="employees-page__field">
+            <label className="neural-label">Full Name</label>
             <input
-              style={inputStyle}
+              className="neural-input"
               value={form.fullName}
               onChange={(e) => setForm({ ...form, fullName: e.target.value })}
               required
             />
-            {fieldErrors.fullName && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{fieldErrors.fullName}</div>}
+            {fieldErrors.fullName && <div className="neural-field-error">{fieldErrors.fullName}</div>}
           </div>
-          <div style={{ marginBottom: '0.5rem' }}>
-            <label style={labelStyle}>Email</label>
+          <div className="employees-page__field">
+            <label className="neural-label">Email</label>
             <input
-              style={inputStyle}
+              className="neural-input"
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
             />
-            {fieldErrors.email && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{fieldErrors.email}</div>}
+            {fieldErrors.email && <div className="neural-field-error">{fieldErrors.email}</div>}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1.25rem', alignItems: 'start' }}>
+          <div className="employees-page__grid2">
             <div>
-              <label style={labelStyle}>Password</label>
+              <label className="neural-label">Password</label>
               <input
-                style={inputStyle}
+                className="neural-input"
                 type="password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
               />
-              {fieldErrors.password && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{fieldErrors.password}</div>}
+              {fieldErrors.password && <div className="neural-field-error">{fieldErrors.password}</div>}
             </div>
             <div>
-              <label style={labelStyle}>Confirm Password</label>
+              <label className="neural-label">Confirm Password</label>
               <input
-                style={inputStyle}
+                className="neural-input"
                 type="password"
                 value={form.confirmPassword}
                 onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                 required
               />
-              {fieldErrors.confirmPassword && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{fieldErrors.confirmPassword}</div>}
+              {fieldErrors.confirmPassword && <div className="neural-field-error">{fieldErrors.confirmPassword}</div>}
             </div>
           </div>
           <button
             type="submit"
             disabled={isSubmitting}
-            style={{ ...buttonStyle, background: '#27ae60', marginTop: '0.5rem', opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+            className="neural-btn neural-btn--primary employees-page__submit" style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
           >
             {isSubmitting ? 'Creating...' : 'Create Employee'}
           </button>
@@ -356,41 +337,41 @@ export default function EmployeesPage() {
       </section>
       )}
 
-      <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-        <h2 style={{ fontSize: '1.25rem', color: '#2c3e50', marginBottom: '1rem' }}>Employees</h2>
+      <section className="neural-card neural-page__panel">
+        <h2 className="neural-page__section-title">Employees</h2>
         {loading ? (
-          <p>Loading employees...</p>
+          <p className="neural-page__muted">Loading employees...</p>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="neural-table">
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #eee' }}>Employee ID</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #eee' }}>User ID</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #eee' }}>Name</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #eee' }}>Email</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #eee' }}>Status</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem', borderBottom: '1px solid #eee' }}>Actions</th>
+                <th>Employee ID</th>
+                <th>User ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{u.employee_id}</td>
-                  <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{u.username}</td>
-                  <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{u.full_name || u.username}</td>
-                  <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{u.email}</td>
-                  <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{u.is_active ? 'Active' : 'Inactive'}</td>
-                  <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
+                  <td>{u.employee_id}</td>
+                  <td>{u.username}</td>
+                  <td>{u.full_name || u.username}</td>
+                  <td>{u.email}</td>
+                  <td>{u.is_active ? 'Active' : 'Inactive'}</td>
+                  <td>
                     {u.role === 'hr_admin' ? (
-                      <span style={{ color: '#666' }}>HR Admin</span>
+                      <span className="neural-page__muted">HR Admin</span>
                     ) : (
                       <>
-                        <button type="button" style={buttonStyle} onClick={() => startEdit(u)}>Edit</button>{' '}
-                        <button type="button" style={buttonStyle} onClick={() => toggleStatus(u)}>
+                        <button type="button" className="neural-btn neural-btn--secondary" onClick={() => startEdit(u)}>Edit</button>{' '}
+                        <button type="button" className="neural-btn neural-btn--secondary" onClick={() => toggleStatus(u)}>
                           {u.is_active ? 'Deactivate' : 'Reactivate'}
                         </button>
                         {' '}
-                        <button type="button" style={{ ...buttonStyle, background: '#c0392b' }} onClick={() => handleDelete(u)}>
+                        <button type="button" className="neural-btn neural-btn--danger" onClick={() => handleDelete(u)}>
                           Delete
                         </button>
                       </>
@@ -404,28 +385,32 @@ export default function EmployeesPage() {
       </section>
 
       {editUser && (
-        <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginTop: '1rem' }}>
-          <h2 style={{ fontSize: '1.25rem', color: '#2c3e50', marginBottom: '1rem' }}>Edit Employee</h2>
-          <form onSubmit={saveEdit} style={{ maxWidth: '500px' }}>
-            <label style={labelStyle}>Employee ID (User ID)</label>
-            <input style={inputStyle} value={editEmployeeId} onChange={(e) => setEditEmployeeId(e.target.value)} required />
-            {editErrors.employeeId && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{editErrors.employeeId}</div>}
-            <label style={labelStyle}>Full Name</label>
-            <input style={inputStyle} value={editFullName} onChange={(e) => setEditFullName(e.target.value)} required />
-            {editErrors.fullName && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{editErrors.fullName}</div>}
-            <label style={labelStyle}>Email</label>
-            <input style={inputStyle} type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
-            {editErrors.email && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{editErrors.email}</div>}
-            {editErrors.general && <div style={{ color: '#e74c32', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{editErrors.general}</div>}
-            <button type="submit" disabled={isEditing} style={{ ...buttonStyle, background: '#f39c12', marginTop: '0.5rem', opacity: isEditing ? 0.7 : 1 }}>
+        <section className="neural-card neural-page__panel">
+          <h2 className="neural-page__section-title">Edit Employee</h2>
+          <form onSubmit={saveEdit} className="employees-page__form employees-page__form--narrow">
+            <label className="neural-label">Employee ID (User ID)</label>
+            <input className="neural-input" value={editEmployeeId} onChange={(e) => setEditEmployeeId(e.target.value)} required />
+            {editErrors.employeeId && <div className="neural-field-error">{editErrors.employeeId}</div>}
+            <label className="neural-label">Full Name</label>
+            <input className="neural-input" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} required />
+            {editErrors.fullName && <div className="neural-field-error">{editErrors.fullName}</div>}
+            <label className="neural-label">Email</label>
+            <input className="neural-input" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
+            {editErrors.email && <div className="neural-field-error">{editErrors.email}</div>}
+            {editErrors.general && <div className="neural-field-error">{editErrors.general}</div>}
+            <button type="submit" disabled={isEditing} className="neural-btn neural-btn--primary employees-page__submit" style={{ opacity: isEditing ? 0.7 : 1 }}>
               {isEditing ? 'Saving...' : 'Save Changes'}
             </button>{' '}
-            <button type="button" style={buttonStyle} onClick={() => setEditUser(null)}>Cancel</button>
+            <button type="button" className="neural-btn neural-btn--secondary" onClick={() => setEditUser(null)}>Cancel</button>
           </form>
         </section>
       )}
 
-      <button type="button" onClick={loadUsers} style={{ ...buttonStyle, background: '#3498db', marginTop: '1rem' }}>Refresh</button>
+      <button type="button" onClick={loadUsers} className="neural-btn neural-btn--primary employees-page__refresh">Refresh</button>
     </div>
   );
 }
+
+
+
+

@@ -36,18 +36,19 @@ export default function LoginPage() {
           <img src="/images/login-side-image.png" alt="" />
         </div>
         <div className="login-card__form">
-          <h2 style={{ marginBottom: '1.5rem', color: '#2c3e50' }}>Login</h2>
-          {error && <p style={{ color: '#e74c32', marginBottom: '1.5rem' }}>{error}</p>}
-          <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
-            <input type="text" placeholder="Enter your User ID" value={userId} onChange={(e) => setUserId(e.target.value)} required style={{ padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem', marginBottom: '0.5rem', width: '100%', boxSizing: 'border-box' }} />
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1rem', marginBottom: '1rem', width: '100%', boxSizing: 'border-box' }} />
-            <button type="submit" disabled={isSubmitting} style={{ width: '100%', padding: '0.75rem', background: '#2c3e50', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '1rem', fontWeight: 500, cursor: isSubmitting ? 'wait' : 'pointer' }}>
-              Sign In
+          <h2 className="login-card__title">Login</h2>
+          <p className="login-card__subtitle">Sign in to access HR policies and support.</p>
+          {error && <p className="login-card__error" role="alert">{error}</p>}
+          <form onSubmit={handleLogin} className="login-card__form-inner">
+            <label className="login-card__label" htmlFor="login-userid">User ID</label>
+            <input id="login-userid" className="neural-input login-card__input" type="text" placeholder="Enter your User ID" value={userId} onChange={(e) => setUserId(e.target.value)} required autoComplete="username" />
+            <label className="login-card__label" htmlFor="login-password">Password</label>
+            <input id="login-password" className="neural-input login-card__input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+            <button type="submit" disabled={isSubmitting} className="neural-btn neural-btn--primary login-card__submit">
+              {isSubmitting ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
-          <p style={{ marginTop: '1.5rem', color: '#666', fontSize: '0.9rem' }}>
-            Don't have an account? Contact admin
-          </p>
+          <p className="login-card__note">Don't have an account? Contact admin</p>
         </div>
       </div>
     </div>

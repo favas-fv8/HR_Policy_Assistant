@@ -39,6 +39,7 @@ urlpatterns = [
 
     # API v1 - Chat
     path("api/v1/chat/conversations/", ChatViewSet.as_view({"get": "list_conversations"})),
+    path("api/v1/chat/conversations/start/", ChatViewSet.as_view({"post": "start_conversation"})),
     path("api/v1/chat/conversations/new/", ChatViewSet.as_view({"post": "create_conversation"})),
     path("api/v1/chat/conversations/<int:pk>/messages/", ChatViewSet.as_view({"get": "messages"})),
     path("api/v1/chat/conversations/<int:pk>/send/", ChatViewSet.as_view({"post": "send_message"})),

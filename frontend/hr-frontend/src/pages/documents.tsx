@@ -215,77 +215,77 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="documents-page" style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
-        <h2 style={{ marginTop: 0, color: '#2c3e50' }}>Document Library</h2>
-        {error && <p style={{ color: '#e74c32' }}>{error}</p>}
-        {success && <p style={{ color: '#27ae60' }}>{success}</p>}
+    <div className="neural-page documents-page-neural">
+      <div className="neural-card neural-page__panel">
+        <h1 className="neural-page__title">Document Library</h1>
+        {error && <p className="neural-page__message neural-page__message--error">{error}</p>}
+        {success && <p className="neural-page__message neural-page__message--success">{success}</p>}
       </div>
 
       {isAdmin && (
-        <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
-          <h3 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Upload HR Policy PDF</h3>
+        <section className="neural-card neural-page__panel">
+          <h2 className="neural-page__section-title">Upload HR Policy PDF</h2>
           <form onSubmit={handleUploadSubmit}>
             <input
               type="text"
               placeholder="Document title (optional)"
               value={uploadTitle}
               onChange={(e) => setUploadTitle(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem', border: '1px solid #ddd', borderRadius: '6px', fontSize: '0.95rem', marginBottom: '0.75rem' }}
+              className="neural-input"
             />
             <input
               type="file"
               accept=".pdf"
               onChange={handleUploadFileChange}
               disabled={uploading}
-              style={{ marginBottom: '0.75rem' }}
+              className="documents-page-neural__file"
             />
-            <button type="submit" disabled={uploading || !uploadFile} style={{ padding: '0.6rem 1.2rem', background: '#2c3e50', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', marginTop: '0.5rem' }}>
+            <button type="submit" disabled={uploading || !uploadFile} className="neural-btn neural-btn--primary documents-page-neural__upload-btn">
               Upload
             </button>
           </form>
         </section>
       )}
 
-      <section style={{ background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-        <h3 style={{ color: '#2c3e50', marginBottom: '1rem', marginTop: 0 }}>Documents</h3>
+      <section className="neural-card neural-page__panel">
+        <h2 className="neural-page__section-title">Documents</h2>
         {loading ? (
-          <p>Loading documents...</p>
+          <p className="neural-page__muted">Loading documents...</p>
         ) : documentsList.length === 0 ? (
-          <p style={{ color: '#666' }}>No documents available.</p>
+          <p className="neural-page__muted">No documents available.</p>
         ) : (
-          <ul className="doc-list" style={{ listStyle: 'none', padding: '0' }}>
+          <ul className="documents-page-neural__list">
             {documentsList.map((rawDoc: Document) => {
               const doc = getDocStatus(rawDoc);
               return (
-              <li key={doc.id} className="doc-item" style={{ padding: '0.75rem 0', borderBottom: '1px solid #eee', display: 'block' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', width: '100%' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ color: '#333', fontWeight: 500 }}>{doc.title}</span>
-                    <span style={{ color: '#666', marginLeft: '0.75rem' }}>
+              <li key={doc.id} className="documents-page-neural__item">
+                <div className="documents-page-neural__item-row">
+                  <div className="documents-page-neural__doc-main">
+                    <span className="documents-page-neural__doc-title">{doc.title}</span>
+                    <span className="documents-page-neural__doc-meta">
                       ({(doc.page_count ?? 0)} pages)
                     </span>
-                    <div style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                    <div className="documents-page-neural__doc-status">
                       Status: {doc.status} | Progress: {doc.processing_progress ?? (doc.status === 'ready' ? 100 : 0)}% | Chunks: {doc.chunk_count ?? 0} | Attempt: {doc.processing_attempt ?? 0}
                     </div>
                   </div>
-                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0, width: isAdmin ? '430px' : '160px' }}>
+                  <div className={isAdmin ? "documents-page-neural__actions is-admin" : "documents-page-neural__actions"}>
                     <button
                       type="button"
                       onClick={() => navigate(`/documents/${doc.id}/view`)}
-                      style={{ marginRight: isAdmin ? '0.5rem' : 0, padding: '0.4rem 0.8rem', background: '#3498db', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      className="neural-btn neural-btn--primary neural-btn--sm documents-page-neural__view-btn"
                     >
                       View Document
                     </button>
                     {isAdmin && (
                       <>
-                        <button type="button" onClick={() => handleViewDetails(doc)} style={{ marginRight: '0.5rem', padding: '0.4rem 0.8rem', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                        <button type="button" onClick={() => handleViewDetails(doc)} className="neural-btn neural-btn--secondary neural-btn--sm documents-page-neural__action-gap">
                           View Details
                         </button>
-                        <button type="button" onClick={() => handleReprocess(doc)} style={{ marginRight: '0.5rem', padding: '0.4rem 0.8rem', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                        <button type="button" onClick={() => handleReprocess(doc)} className="neural-btn neural-btn--accent neural-btn--sm documents-page-neural__action-gap">
                           Retry
                         </button>
-                        <button type="button" onClick={() => handleDelete(doc)} style={{ padding: '0.4rem 0.8rem', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                        <button type="button" onClick={() => handleDelete(doc)} className="neural-btn neural-btn--danger neural-btn--sm">
                           Delete
                         </button>
                       </>
@@ -331,74 +331,74 @@ export default function DocumentsPage() {
         };
 
         return (
-          <section style={{ marginTop: '2rem', background: '#fff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-              <h3 style={{ color: '#2c3e50', margin: 0 }}>Document Details: {doc.title}</h3>
-              <button type="button" onClick={() => { setViewingDoc(null); setViewingChunks(null); }} style={{ padding: '0.35rem 0.7rem', border: '1px solid #ccc', borderRadius: 6, background: '#fff', cursor: 'pointer' }}>Close</button>
+          <section className="neural-card neural-page__panel">
+            <div className="documents-page-neural__detail-head">
+              <h2 className="neural-page__section-title documents-page-neural__detail-title">Document Details: {doc.title}</h2>
+              <button type="button" onClick={() => { setViewingDoc(null); setViewingChunks(null); }} className="neural-btn neural-btn--secondary neural-btn--sm">Close</button>
             </div>
 
-            <div style={{ marginTop: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, color: '#374151', fontSize: 14 }}>
-                <span>Status: <strong style={{ textTransform: 'capitalize' }}>{doc.status}</strong></span>
+            <div className="documents-page-neural__section">
+              <div className="documents-page-neural__progress-meta">
+                <span>Status: <strong className="documents-page-neural__status">{doc.status}</strong></span>
                 <span>{progress}%</span>
               </div>
-              <div style={{ width: '100%', height: 12, background: '#e5e7eb', borderRadius: 999, overflow: 'hidden' }}>
+              <div className="documents-page-neural__progress">
                 <div style={{ width: `${progress}%`, height: '100%', background: doc.status === 'error' ? '#dc2626' : '#2563eb', transition: 'width 300ms ease' }} />
               </div>
-              <p style={{ color: '#555', marginTop: 8, marginBottom: 0 }}>
+              <p className="neural-page__muted documents-page-neural__stage-text">
                 {doc.processing_stage_detail || (doc.status === 'ready' ? 'Document ready for RAG.' : doc.status === 'error' ? 'Processing failed.' : 'Processing...')}
               </p>
             </div>
 
-            <div style={{ marginTop: '1rem' }}>
-              <h4 style={{ color: '#2c3e50', marginBottom: 8 }}>Processing Stages</h4>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+            <div className="documents-page-neural__section">
+              <h3 className="neural-page__card-title">Processing Stages</h3>
+              <ul className="documents-page-neural__stages">
                 {stages.map((s) => {
                   const state = stageState(s.key);
                   const color = state === 'completed' ? '#16a34a' : state === 'current' ? '#2563eb' : '#9ca3af';
                   const icon = state === 'completed' ? '[done]' : state === 'current' ? '[current]' : '[pending]';
                   return (
-                    <li key={s.key} style={{ color, fontSize: 14 }}>
-                      <span style={{ fontFamily: 'monospace', marginRight: 8 }}>{icon}</span>{s.label}
+                    <li key={s.key} className="documents-page-neural__stage" style={{ color }}>
+                      <span className="documents-page-neural__stage-icon">{icon}</span>{s.label}
                     </li>
                   );
                 })}
               </ul>
             </div>
 
-            <div style={{ marginTop: '1rem', color: '#555' }}>
-              <p style={{ margin: '0.25rem 0' }}><strong>Original PDF file size:</strong> {doc.file_size ?? 0} bytes ({((doc.file_size ?? 0) / 1024).toFixed(1)} KB)</p>
-              <p style={{ margin: '0.25rem 0' }}><strong>Extracted text (normalized):</strong> {doc.extracted_characters ?? 0} chars / {doc.extracted_tokens ?? 0} est. tokens{doc.extraction_tokenizer ? ` (${doc.extraction_tokenizer})` : ' (tokenizer unknown/legacy)'}</p>
-              <p style={{ margin: '0.25rem 0' }}><strong>Total chunks stored (DB):</strong> {doc.chunk_count ?? 0}</p>
-              <p style={{ margin: '0.25rem 0' }}><strong>Embedded chunks:</strong> {doc.embedded_chunk_count ?? doc.processed_chunks ?? 0}</p>
-              <p style={{ margin: '0.25rem 0' }}><strong>Total chunks (current attempt):</strong> {doc.total_chunks ?? 0}</p>
-              <p style={{ margin: '0.25rem 0' }}>Pages: {doc.page_count ?? 0} | Attempt: {doc.processing_attempt ?? 0}</p>
-              <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#6b7280' }}>Note: file bytes, extracted characters, token estimates, and chunk count are different metrics.</p>
+            <div className="documents-page-neural__meta-block">
+              <p className="documents-page-neural__meta-line"><strong>Original PDF file size:</strong> {doc.file_size ?? 0} bytes ({((doc.file_size ?? 0) / 1024).toFixed(1)} KB)</p>
+              <p className="documents-page-neural__meta-line"><strong>Extracted text (normalized):</strong> {doc.extracted_characters ?? 0} chars / {doc.extracted_tokens ?? 0} est. tokens{doc.extraction_tokenizer ? ` (${doc.extraction_tokenizer})` : ' (tokenizer unknown/legacy)'}</p>
+              <p className="documents-page-neural__meta-line"><strong>Total chunks stored (DB):</strong> {doc.chunk_count ?? 0}</p>
+              <p className="documents-page-neural__meta-line"><strong>Embedded chunks:</strong> {doc.embedded_chunk_count ?? doc.processed_chunks ?? 0}</p>
+              <p className="documents-page-neural__meta-line"><strong>Total chunks (current attempt):</strong> {doc.total_chunks ?? 0}</p>
+              <p className="documents-page-neural__meta-line">Pages: {doc.page_count ?? 0} | Attempt: {doc.processing_attempt ?? 0}</p>
+              <p className="neural-page__muted neural-page__muted--small">Note: file bytes, extracted characters, token estimates, and chunk count are different metrics.</p>
             </div>
 
             {isAdmin && doc.status === 'error' && doc.processing_error ? (
-              <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6 }}>
-                <p style={{ color: '#b91c1c', margin: 0 }}><strong>Processing error:</strong> {doc.processing_error}</p>
-                <button type="button" onClick={() => handleReprocess(doc)} style={{ marginTop: 8, padding: '0.4rem 0.8rem', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+              <div className="neural-alert neural-alert--error">
+                <p className="neural-alert__text"><strong>Processing error:</strong> {doc.processing_error}</p>
+                <button type="button" onClick={() => handleReprocess(doc)} className="neural-btn neural-btn--accent neural-btn--sm documents-page-neural__reprocess">
                   Retry Processing
                 </button>
               </div>
             ) : null}
 
             {viewingChunks && viewingChunks.length > 0 && (
-              <div style={{ marginTop: '1rem' }}>
-                <h4 style={{ color: '#2c3e50', marginBottom: '0.5rem' }}>Chunks ({viewingChunks.length})</h4>
-                <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '0.25rem', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.5rem', background: '#fafafa' }}>
+              <div className="documents-page-neural__section">
+                <h3 className="neural-page__card-title">Chunks ({viewingChunks.length})</h3>
+                <div className="documents-page-neural__chunks">
                   {viewingChunks.map((c: any) => (
-                    <div key={c.chunk_index} style={{ marginBottom: '0.5rem', padding: '0.6rem', border: '1px solid #eee', borderRadius: '6px', background: '#fff' }}>
-                      <div style={{ fontSize: '0.9rem', color: '#374151' }}>
+                    <div key={c.chunk_index} className="documents-page-neural__chunk">
+                      <div className="documents-page-neural__chunk-head">
                         <strong>Chunk #{c.chunk_index}</strong> | Pages {c.page_start ?? c.page_number}-{c.page_end ?? c.page_number}
                         {c.section_heading ? ` | ${c.section_heading}` : ''}
                       </div>
-                      <div style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: 2 }}>
+                      <div className="documents-page-neural__chunk-meta">
                         {c.char_count ?? c.chunk_text_length ?? 0} chars | {c.token_count ?? 0} est. tokens | embedding: {c.embedding_status || 'unknown'}
                       </div>
-                      <div style={{ color: '#555', fontSize: '0.9rem', marginTop: 4, whiteSpace: 'pre-wrap' }}>{c.chunk_text_preview || c.chunk_text || ''}</div>
+                      <div className="documents-page-neural__chunk-text">{c.chunk_text_preview || c.chunk_text || ''}</div>
                     </div>
                   ))}
                 </div>

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   sendMessage,
+  startConversation,
   fetchConversations,
-  createConversation,
   deleteConversation,
   fetchMessages,
 } from '../services/chatService';
@@ -36,6 +36,7 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bootstrapped = useRef(false);
+  const startingRef = useRef(false);
 
   const loadConversations = async () => {
     try {
@@ -66,43 +67,24 @@ export default function ChatPage() {
   useEffect(() => {
     if (bootstrapped.current) return;
     bootstrapped.current = true;
-
     (async () => {
-      try {
-        const list = await loadConversations();
-        if (list.length > 0) {
-          const cid = list[0].id;
-          setSelectedConversationId(cid);
-          await loadMessages(cid);
-        } else {
-          const created = await createConversation();
-          const cid2 = created?.id;
-          setSelectedConversationId(cid2 ?? null);
-          if (cid2) {
-            await loadMessages(cid2);
-          }
-        }
-      } catch (e: any) {
-        setError(e?.message || 'Failed to load conversations.');
-      }
+      await loadConversations();
+      // Default to draft (no conversation created)
+      setSelectedConversationId(null);
+      setMessages([]);
     })();
-
     return () => {};
   }, []);
 
   const handleCreateConversation = async () => {
-    try {
-      const created = await createConversation();
-      const cid = created?.id;
-      if (cid) {
-        setSelectedConversationId(cid);
-        setMessages([]);
-        setError(null);
-      }
-      await loadConversations();
-    } catch (e: any) {
-      setError(e?.message || 'Failed to create conversation.');
+    // If already in empty draft, do nothing (no new DB record, no API call)
+    if (selectedConversationId === null && messages.length === 0) {
+      return;
     }
+    // Open fresh draft
+    setSelectedConversationId(null);
+    setMessages([]);
+    setError(null);
   };
 
   const handleDeleteConversation = async (e: React.MouseEvent, cid: number) => {
@@ -110,18 +92,10 @@ export default function ChatPage() {
     if (!window.confirm('Delete this conversation?')) return;
     try {
       await deleteConversation(cid);
-      const list = await loadConversations();
+      await loadConversations();
       if (selectedConversationId === cid) {
-        if (list.length > 0) {
-          setSelectedConversationId(list[0].id);
-          await loadMessages(list[0].id);
-        } else {
-          const created = await createConversation();
-          const newId = created?.id ?? null;
-          setSelectedConversationId(newId);
-          setMessages([]);
-          await loadConversations();
-        }
+        setSelectedConversationId(null);
+        setMessages([]);
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to delete conversation.');
@@ -136,10 +110,54 @@ export default function ChatPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !selectedConversationId || sending) return;
+    if (!input.trim() || sending) return;
     const content = input.trim();
     setSending(true);
     setError(null);
+
+    // Draft: create conversation on first message
+    if (selectedConversationId === null) {
+      if (startingRef.current) {
+        setSending(false);
+        return;
+      }
+      startingRef.current = true;
+      try {
+        const resp = await startConversation(content);
+        const newCid = resp?.conversation_id as number | undefined;
+        const assistantContent = resp?.content ?? 'I apologize, but I was unable to generate a response.';
+        const sources: Source[] = normalizeSources(resp?.sources);
+        const conversationTitle = typeof resp?.conversation_title === 'string' ? resp.conversation_title : 'New Chat';
+
+        const userMsg: ChatMessage = { role: 'user', content };
+        setMessages([{ ...userMsg }, { role: 'assistant', content: assistantContent, sources }]);
+        setInput('');
+
+        if (newCid) {
+          setSelectedConversationId(newCid);
+          // Prepend new conversation to list
+          setConversations((prev) => {
+            const exists = prev.some((c) => c.id === newCid);
+            const newConv: Conversation = resp?.conversation
+              ? { ...resp.conversation }
+              : { id: newCid, title: conversationTitle, updated_at: new Date().toISOString() };
+            if (exists) return prev.map((c) => (c.id === newCid ? { ...c, ...newConv } : c));
+            return [newConv, ...prev.filter((c) => c.id !== newCid)];
+          });
+          await loadConversations();
+        } else {
+          await loadConversations();
+        }
+      } catch (e: any) {
+        setError(e?.message || 'Failed to send message.');
+      } finally {
+        startingRef.current = false;
+        setSending(false);
+      }
+      return;
+    }
+
+    // Existing conversation
     const userMsg: ChatMessage = { role: 'user', content };
     try {
       const assistantResp = await sendMessage(selectedConversationId, content);
@@ -179,81 +197,35 @@ export default function ChatPage() {
   };
 
   return (
-    <div style={{ width: '100%', maxWidth: '1320px', margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box', alignSelf: 'stretch' }}>
-      <div style={{ background: '#fff', padding: '1rem 1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', marginBottom: '1rem' }}>
-        <h2 style={{ margin: 0, color: '#2c3e50' }}>AI Chatbot</h2>
+    <div className="neural-page chat-page-neural">
+      <div className="neural-card neural-page__panel chat-page-neural__header">
+        <h1 className="neural-page__title chat-page-neural__title">AI Chatbot</h1>
       </div>
-      <div className="cb-05" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-        <div style={{ width: '260px', flex: '0 0 260px', minWidth: 0 }}>
-          <button
-            style={{
-              marginBottom: '1rem',
-              padding: '0.5rem 1rem',
-              width: '100%',
-              boxSizing: 'border-box',
-              background: '#3498db',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-            }}
-            onClick={handleCreateConversation}
-          >
+      <div className="cb-05 chat-page-neural__layout">
+        <div className="chat-page-neural__sidebar">
+          <button className="neural-btn neural-btn--primary chat-page-neural__new-btn" onClick={handleCreateConversation}>
             New Chat
           </button>
-          <div style={{ border: '1px solid #ddd', borderRadius: '8px', background: '#fff', maxHeight: '480px', overflowY: 'auto' }}>
+          <div className="neural-card chat-page-neural__history">
             {conversations.length === 0 ? (
-              <p style={{ padding: '1rem', color: '#666', fontSize: '0.9rem' }}>No conversations yet.</p>
+              <p className="neural-page__muted chat-page-neural__empty">No conversations yet.</p>
             ) : (
               conversations.map((c) => (
                 <div
                   key={c.id}
                   onClick={() => handleSelectConversation(c.id)}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #eee',
-                    background: selectedConversationId === c.id ? '#eaf2f8' : '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                  }}
+                  className={`chat-page-neural__conv ${selectedConversationId === c.id ? 'is-active' : ''}`}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      title={c.title}
-                      style={{
-                        fontWeight: selectedConversationId === c.id ? 600 : 400,
-                        color: '#333',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {c.title}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>{formatUpdatedAt(c.updated_at)}</div>
+                  <div className="chat-page-neural__conv-main">
+                    <div title={c.title} className="chat-page-neural__conv-title">{c.title}</div>
+                    <div className="chat-page-neural__conv-date">{formatUpdatedAt(c.updated_at)}</div>
                   </div>
                   <button
                     type="button"
                     title="Delete conversation"
                     aria-label="Delete conversation"
                     onClick={(e) => handleDeleteConversation(e, c.id)}
-                    style={{
-                      border: 'none',
-                      background: 'transparent',
-                      color: '#94a3b8',
-                      cursor: 'pointer',
-                      padding: '0.2rem',
-                      lineHeight: 1,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = '#dc2626'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; }}
+                    className="chat-page-neural__delete"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polyline points="3 6 5 6 21 6"></polyline>
@@ -269,11 +241,11 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <div style={{ flex: '1 1 0%', minWidth: 0, width: '100%' }}>
-          <div className="messages cb-05__stage" style={{ minHeight: '400px', height: '520px', width: '100%', minWidth: 0, maxWidth: 'none', boxSizing: 'border-box', overflowY: 'auto', padding: '1.25rem', border: '1px solid #ddd', borderRadius: '14px', background: '#fff', marginBottom: '1rem' }}>
+        <div className="chat-page-neural__main">
+          <div className="messages cb-05__stage neural-card chat-page-neural__stage">
             <div className="cb-05__thread">
               {messages.length === 0 ? (
-                <p style={{ color: '#8b93a7', textAlign: 'center', marginTop: '6rem' }}>Start a new conversation or select a previous one.</p>
+                <p className="neural-page__muted chat-page-neural__start">Start a new conversation or select a previous one.</p>
               ) : (
                 messages.map((msg, i) => (
                   <div key={i} className={`chat-msg cb-05__turn ${msg.role === 'user' ? 'chat-msg-user cb-05__turn--out' : 'chat-msg-assistant cb-05__turn--in'}`}>
@@ -295,11 +267,11 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {error && <p style={{ color: '#e74c32', marginBottom: '0.75rem' }}>{error}</p>}
+          {error && <p className="neural-page__message neural-page__message--error">{error}</p>}
 
-          <form onSubmit={handleSend} style={{ display: 'flex', gap: '0.5rem', background: '#fff', padding: '0.75rem', borderRadius: '20px', border: '1px solid #ddd' }}>
-            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask about HR policies..." autoFocus style={{ flex: 1, padding: '0.5rem', border: 'none', borderRadius: '15px', fontSize: '1rem' }} />
-            <button type="submit" disabled={sending || !input.trim()} style={{ padding: '0 1.5rem', background: '#2c3e50', color: '#fff', border: 'none', borderRadius: '15px', fontWeight: 500, cursor: sending ? 'wait' : 'pointer' }}>
+          <form onSubmit={handleSend} className="neural-card chat-page-neural__composer">
+            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask about HR policies..." autoFocus className="chat-page-neural__input" />
+            <button type="submit" disabled={sending || !input.trim()} className="neural-btn neural-btn--primary">
               Send
             </button>
           </form>

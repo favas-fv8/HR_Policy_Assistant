@@ -3,6 +3,18 @@ import { apiFetch } from './http';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 const AUTH_HEADERS = (token: string | null) => ({ Authorization: `Bearer ${token ?? ''}` });
 
+export const startConversation = async (content: string) => {
+  const data = await apiFetch(`${API_BASE}/v1/chat/conversations/start/`, {
+    method: 'POST',
+    headers: {
+      ...AUTH_HEADERS(localStorage.getItem('hr_token')),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ content }),
+  });
+  return data;
+};
+
 export const sendMessage = async (conversationId: number, content: string) => {
   const data = await apiFetch(`${API_BASE}/v1/chat/conversations/${conversationId}/send/`, {
     method: 'POST',
